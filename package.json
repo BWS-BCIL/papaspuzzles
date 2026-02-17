@@ -1,0 +1,14 @@
+{
+    "name": "puzzle-swap-root",
+    "version": "1.0.0",
+    "description": "Root script to run Puzzle Swap MVP",
+    "scripts": {
+        "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+        "dev": "concurrently \"npm run server\" \"npm run client\"",
+        "server": "cd server && npm start",
+        "client": "cd client && npm run dev"
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    }
+}

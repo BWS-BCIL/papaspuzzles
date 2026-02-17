@@ -1,0 +1,32 @@
+# OS
+.DS_Store
+
+# Node
+node_modules/
+**/node_modules/
+
+# Next.js
+.next/
+out/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Netlify
+.netlify/
+
+# Uploads (local dev)
+uploads/
+
+# Misc
+coverage/
+*.log
