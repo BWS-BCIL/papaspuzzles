@@ -58,6 +58,15 @@ NEXT_PUBLIC_USE_MOCK_DATA=true
 - [ ] Add basic privacy policy (emails collected).
 - [ ] Smoke test key flows: Explore → Trade, Admin add, Donation submit.
 
+## Handoff to Student
+1. In GitHub, add the student as a collaborator **or** have them fork the repo.
+2. Student clones their repo locally.
+3. In Vercel, import the repo and set environment variables (Firebase public + admin).
+4. Deploy and verify core flows:
+  - Explore shows listings
+  - Admin can add inventory
+  - Trade flow completes and updates inventory
+
 ## Tech Stack
 - **Frontend**: Next.js, React, Tailwind CSS, Lucide Icons
 - **Backend**: Next.js API Routes
