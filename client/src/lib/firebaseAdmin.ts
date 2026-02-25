@@ -28,28 +28,33 @@ if (!admin.apps.length) {
             storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
         });
     } else {
-        // Warn but don't crash immediately - this allows build to proceed if it doesn't actually use the DB
         console.warn('Firebase Admin not initialized. Missing credentials (FIREBASE_SERVICE_ACCOUNT or FIREBASE_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY).');
     }
 }
 
-// Helper to access services safely
-function getAdminService<T>(serviceGetter: () => T): T {
+function getAdminDb(): admin.firestore.Firestore {
     if (!admin.apps.length) {
-        // If we're in a build or environment without creds, attempting to use the service should throw or handle gracefully
-        // But for top-level constants, we might want to delay throwing until usage
-        // However, existing code expects 'adminDb' to be the service instance
-        // We'll throw detailed error if accessed without init
-        throw new Error('Firebase Admin not initialized. Check environment variables.');
+        throw new Error('Firebase Admin is not initialized. Please set FIREBASE_SERVICE_ACCOUNT or FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY environment variables.');
     }
-    return serviceGetter();
+    return admin.firestore();
 }
 
-// We use getters or just export the instances. 
-// If we export the result of admin.firestore() immediately and init failed, it crashes HERE.
-// But if we wrap it, existing code importing 'adminDb' might need changes if it expects a direct value.
-// NOTE: admin.firestore() itself generally requires an app to be initialized.
-// To avoid top-level crash when imports happen during build:
-export const adminDb = admin.apps.length ? admin.firestore() : null as unknown as admin.firestore.Firestore;
-export const adminStorage = admin.apps.length ? admin.storage() : null as unknown as admin.storage.Storage;
+function getAdminStorage(): admin.storage.Storage {
+    if (!admin.apps.length) {
+        throw new Error('Firebase Admin is not initialized. Please set FIREBASE_SERVICE_ACCOUNT or FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY environment variables.');
+    }
+    return admin.storage();
+}
+
+export const adminDb = new Proxy({} as admin.firestore.Firestore, {
+    get(_target, prop) {
+        return (getAdminDb() as any)[prop];
+    }
+});
+
+export const adminStorage = new Proxy({} as admin.storage.Storage, {
+    get(_target, prop) {
+        return (getAdminStorage() as any)[prop];
+    }
+});
 

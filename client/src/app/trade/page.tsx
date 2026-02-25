@@ -3,7 +3,22 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import { CheckCircle, Upload, ArrowRight, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { CheckCircle, Upload, ArrowRight, ArrowLeft, LogIn } from "lucide-react";
+
+const TIME_SLOTS = ["10:00 AM", "12:00 PM", "2:00 PM", "4:00 PM"];
+
+interface DonationForm {
+    name: string;
+    pieces: string;
+    type: string;
+    condition: string;
+    image: string;
+}
+
+const emptyDonation = (): DonationForm => ({
+    name: "", pieces: "", type: "Animals", condition: "good", image: ""
+});
 
 export default function TradePage() {
     return (
@@ -16,23 +31,60 @@ export default function TradePage() {
 function TradeForm() {
     const searchParams = useSearchParams();
     const wantedId = searchParams.get("wanted");
+    const { user, loading: authLoading, signInWithGoogle } = useAuth();
 
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [inventory, setInventory] = useState<any[]>([]);
+    const [isFirstTime, setIsFirstTime] = useState(false);
+    const [userTierLoaded, setUserTierLoaded] = useState(false);
 
-    // Form State
     const [userInfo, setUserInfo] = useState({ name: "", email: "" });
-    const [donationInfo, setDonationInfo] = useState({
-        name: "", pieces: "", type: "Animals", condition: "good", image: ""
-    });
+    const [donations, setDonations] = useState<DonationForm[]>([emptyDonation()]);
     const [selectedPuzzleId, setSelectedPuzzleId] = useState<string | null>(wantedId || null);
+    const [dropoffDate, setDropoffDate] = useState("");
+    const [dropoffTime, setDropoffTime] = useState(TIME_SLOTS[0]);
 
-    // Fetch inventory when reaching step 3
     useEffect(() => {
-        if (step === 3) {
-            fetchInventory();
+        if (!user) return;
+
+        setUserInfo({
+            name: user.displayName || "",
+            email: user.email || "",
+        });
+
+        const fetchUserTier = async () => {
+            try {
+                const res = await fetch(`/api/users?uid=${user.uid}`, { cache: "no-store" });
+                if (res.ok) {
+                    const data = await res.json();
+                    const firstTime = data.data?.tradeTier === "first-time";
+                    setIsFirstTime(firstTime);
+                    setDonations(firstTime ? [emptyDonation(), emptyDonation()] : [emptyDonation()]);
+                } else {
+                    setIsFirstTime(true);
+                    setDonations([emptyDonation(), emptyDonation()]);
+                }
+            } catch {
+                setIsFirstTime(true);
+                setDonations([emptyDonation(), emptyDonation()]);
+            } finally {
+                setUserTierLoaded(true);
+            }
+        };
+
+        fetchUserTier();
+    }, [user]);
+
+    // Advance past auth gate once user is signed in and tier is loaded
+    useEffect(() => {
+        if (step === 1 && user && userTierLoaded) {
+            setStep(2);
         }
+    }, [step, user, userTierLoaded]);
+
+    useEffect(() => {
+        if (step === 4) fetchInventory();
     }, [step]);
 
     const fetchInventory = async () => {
@@ -45,22 +97,15 @@ function TradeForm() {
         }
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
         if (!e.target.files?.[0]) return;
-
         const formData = new FormData();
         formData.append("puzzlePhoto", e.target.files[0]);
-
         try {
             setLoading(true);
-            const res = await fetch("/api/upload", {
-                method: "POST",
-                body: formData,
-            });
+            const res = await fetch("/api/upload", { method: "POST", body: formData });
             const data = await res.json();
-            if (data.imageUrl) {
-                setDonationInfo({ ...donationInfo, image: data.imageUrl });
-            }
+            if (data.imageUrl) updateDonation(index, "image", data.imageUrl);
         } catch (err) {
             console.error("Upload failed", err);
         } finally {
@@ -68,9 +113,12 @@ function TradeForm() {
         }
     };
 
+    const updateDonation = (index: number, field: keyof DonationForm, value: string) => {
+        setDonations(prev => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
+    };
+
     const handleSubmitTrade = async () => {
         if (!selectedPuzzleId) return;
-
         setLoading(true);
         try {
             const res = await fetch("/api/trade", {
@@ -79,18 +127,19 @@ function TradeForm() {
                 body: JSON.stringify({
                     userName: userInfo.name,
                     userEmail: userInfo.email,
-                    donationName: donationInfo.name,
-                    donationPieces: donationInfo.pieces,
-                    donationType: donationInfo.type,
-                    donationCondition: donationInfo.condition,
-                    donationImage: donationInfo.image,
-                    wantedPuzzleId: selectedPuzzleId
+                    uid: user?.uid || null,
+                    donations: donations.map(d => ({
+                        name: d.name,
+                        pieces: d.pieces,
+                        type: d.type,
+                        condition: d.condition,
+                        image: d.image,
+                    })),
+                    wantedPuzzleId: selectedPuzzleId,
+                    dropoffDatetime: dropoffDate ? `${dropoffDate} ${dropoffTime}` : null,
                 }),
             });
-
-            if (res.ok) {
-                setStep(4); // Success Step
-            }
+            if (res.ok) setStep(6);
         } catch (err) {
             console.error("Trade failed", err);
         } finally {
@@ -98,10 +147,37 @@ function TradeForm() {
         }
     };
 
-    // Render Steps
+    const allDonationsValid = donations.every(d => d.name && d.pieces && d.image);
+
     const renderStep1 = () => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300 text-center py-8">
+            <div className="flex justify-center mb-4">
+                <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center">
+                    <LogIn className="w-10 h-10 text-primary" />
+                </div>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">Sign In to Start Trading</h2>
+            <p className="text-gray-500 max-w-sm mx-auto">
+                Sign in with Google to start your puzzle trade. It only takes a second!
+            </p>
+            <button
+                onClick={signInWithGoogle}
+                className="inline-flex items-center gap-3 px-6 py-3 bg-white border-2 border-gray-200 rounded-full font-bold text-gray-700 hover:border-primary hover:text-primary transition-colors shadow-sm"
+            >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                Sign in with Google
+            </button>
+        </div>
+    );
+
+    const renderStep2 = () => (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="text-2xl font-bold text-gray-800">Step 1: About You</h2>
+            <h2 className="text-2xl font-bold text-gray-800">Step 1: Your Info</h2>
             <div className="space-y-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
@@ -125,7 +201,7 @@ function TradeForm() {
                 </div>
             </div>
             <button
-                onClick={() => setStep(2)}
+                onClick={() => setStep(3)}
                 disabled={!userInfo.name || !userInfo.email}
                 className="w-full py-3 bg-primary text-white rounded-full font-bold hover:bg-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
@@ -134,90 +210,113 @@ function TradeForm() {
         </div>
     );
 
-    const renderStep2 = () => (
-        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="text-2xl font-bold text-gray-800">Step 2: Your Donation</h2>
-            <div className="space-y-4">
+    const renderDonationForm = (donation: DonationForm, index: number) => (
+        <div key={index} className="border border-gray-100 rounded-xl p-4 space-y-4">
+            {donations.length > 1 && (
+                <h3 className="font-semibold text-gray-700">Puzzle {index + 1}</h3>
+            )}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Puzzle Name</label>
+                <input
+                    type="text"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                    placeholder="e.g. Golden Gate Bridge"
+                    value={donation.name}
+                    onChange={(e) => updateDonation(index, "name", e.target.value)}
+                />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Puzzle Name</label>
-                    <input
-                        type="text"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
-                        placeholder="e.g. Golden Gate Bridge"
-                        value={donationInfo.name}
-                        onChange={(e) => setDonationInfo({ ...donationInfo, name: e.target.value })}
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none bg-white"
+                        value={donation.type}
+                        onChange={(e) => updateDonation(index, "type", e.target.value)}
+                    >
+                        <option value="Animals">Animals</option>
+                        <option value="Landscape">Landscape</option>
+                        <option value="Art">Art</option>
+                        <option value="Food">Food</option>
+                        <option value="Cityscape">Cityscape</option>
+                        <option value="Movies">Movies</option>
+                        <option value="Other">Other</option>
+                    </select>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none bg-white"
-                            value={donationInfo.type}
-                            onChange={(e) => setDonationInfo({ ...donationInfo, type: e.target.value })}
-                        >
-                            <option value="Animals">Animals</option>
-                            <option value="Landscape">Landscape</option>
-                            <option value="Art">Art</option>
-                            <option value="Food">Food</option>
-                            <option value="Cityscape">Cityscape</option>
-                            <option value="Movies">Movies</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Pieces</label>
-                        <select
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none bg-white"
-                            value={donationInfo.pieces}
-                            onChange={(e) => setDonationInfo({ ...donationInfo, pieces: e.target.value })}
-                        >
-                            <option value="">Select...</option>
-                            <option value="100">100</option>
-                            <option value="300">300</option>
-                            <option value="500">500</option>
-                            <option value="1000">1000</option>
-                            <option value="2000+">2000+</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Upload Photo</label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-primary transition-colors cursor-pointer relative">
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                        {loading ? (
-                            <span className="text-gray-500">Uploading...</span>
-                        ) : donationInfo.image ? (
-                            <div className="relative h-32 w-full">
-                                <img src={donationInfo.image} alt="Preview" className="h-full w-full object-contain" />
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center text-gray-500">
-                                <Upload className="w-8 h-8 mb-2" />
-                                <span>Click to upload photo</span>
-                            </div>
-                        )}
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Pieces</label>
+                    <select
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none bg-white"
+                        value={donation.pieces}
+                        onChange={(e) => updateDonation(index, "pieces", e.target.value)}
+                    >
+                        <option value="">Select...</option>
+                        <option value="100">100</option>
+                        <option value="300">300</option>
+                        <option value="500">500</option>
+                        <option value="1000">1000</option>
+                        <option value="2000+">2000+</option>
+                    </select>
                 </div>
             </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Condition</label>
+                <select
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none bg-white"
+                    value={donation.condition}
+                    onChange={(e) => updateDonation(index, "condition", e.target.value)}
+                >
+                    <option value="new">New / Like New</option>
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                </select>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Upload Photo</label>
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-primary transition-colors cursor-pointer relative">
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, index)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    {loading ? (
+                        <span className="text-gray-500">Uploading...</span>
+                    ) : donation.image ? (
+                        <div className="relative h-32 w-full">
+                            <img src={donation.image} alt="Preview" className="h-full w-full object-contain" />
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center text-gray-500">
+                            <Upload className="w-8 h-8 mb-2" />
+                            <span>Click to upload photo</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
 
+    const renderStep3 = () => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <h2 className="text-2xl font-bold text-gray-800">
+                Step 2: Donate Your Puzzle{donations.length > 1 ? "s" : ""}
+            </h2>
+            {isFirstTime && (
+                <div className="bg-accent/30 border border-accent rounded-xl p-4 text-sm text-gray-700">
+                    🧩 <strong>First-time traders donate 2 puzzles and receive 1</strong> — to help us build up our library!
+                </div>
+            )}
+            {donations.map((donation, index) => renderDonationForm(donation, index))}
             <div className="flex gap-3">
                 <button
-                    onClick={() => setStep(1)}
-                    className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-full font-bold hover:bg-gray-50 transition-colors"
+                    onClick={() => setStep(2)}
+                    className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-full font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
                 >
-                    Back
+                    <ArrowLeft className="w-4 h-4" /> Back
                 </button>
                 <button
-                    onClick={() => setStep(3)}
-                    disabled={!donationInfo.name || !donationInfo.pieces || !donationInfo.image}
+                    onClick={() => setStep(4)}
+                    disabled={!allDonationsValid}
                     className="flex-[2] py-3 bg-primary text-white rounded-full font-bold hover:bg-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                     Next Step <ArrowRight className="w-4 h-4" />
@@ -226,18 +325,16 @@ function TradeForm() {
         </div>
     );
 
-    const renderStep3 = () => (
+    const renderStep4 = () => (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-2xl font-bold text-gray-800">Step 3: Choose a Puzzle</h2>
             <p className="text-gray-500">Select a puzzle from our inventory to complete your trade.</p>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
                 {inventory.map((puzzle) => (
                     <div
                         key={puzzle.id}
                         onClick={() => setSelectedPuzzleId(puzzle.id)}
-                        className={`cursor-pointer border-2 rounded-xl overflow-hidden transition-all hover:shadow-md ${selectedPuzzleId === puzzle.id ? 'border-primary ring-2 ring-primary ring-opacity-50' : 'border-gray-100'
-                            }`}
+                        className={`cursor-pointer border-2 rounded-xl overflow-hidden transition-all hover:shadow-md ${selectedPuzzleId === puzzle.id ? "border-primary ring-2 ring-primary ring-opacity-50" : "border-gray-100"}`}
                     >
                         <div className="h-40 bg-gray-100 relative">
                             {puzzle.image_url ? (
@@ -263,17 +360,62 @@ function TradeForm() {
                     </div>
                 )}
             </div>
-
             <div className="flex gap-3 pt-4">
                 <button
-                    onClick={() => setStep(2)}
-                    className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-full font-bold hover:bg-gray-50 transition-colors"
+                    onClick={() => setStep(3)}
+                    className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-full font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
                 >
-                    Back
+                    <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                    onClick={() => setStep(5)}
+                    disabled={!selectedPuzzleId}
+                    className="flex-[2] py-3 bg-primary text-white rounded-full font-bold hover:bg-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                    Next Step <ArrowRight className="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+    );
+
+    const renderStep5 = () => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <h2 className="text-2xl font-bold text-gray-800">Step 4: Schedule Drop-off</h2>
+            <p className="text-gray-500">Choose when you would like to drop off your puzzle(s) and pick up your new one.</p>
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
+                    <input
+                        type="date"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                        value={dropoffDate}
+                        min={new Date().toISOString().split("T")[0]}
+                        onChange={(e) => setDropoffDate(e.target.value)}
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Time</label>
+                    <select
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none bg-white"
+                        value={dropoffTime}
+                        onChange={(e) => setDropoffTime(e.target.value)}
+                    >
+                        {TIME_SLOTS.map(slot => (
+                            <option key={slot} value={slot}>{slot}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            <div className="flex gap-3">
+                <button
+                    onClick={() => setStep(4)}
+                    className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-full font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
+                >
+                    <ArrowLeft className="w-4 h-4" /> Back
                 </button>
                 <button
                     onClick={handleSubmitTrade}
-                    disabled={!selectedPuzzleId || loading}
+                    disabled={!dropoffDate || loading}
                     className="flex-[2] py-3 bg-secondary text-gray-800 rounded-full font-bold hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                 >
                     {loading ? "Processing..." : "Confirm Trade"}
@@ -289,8 +431,8 @@ function TradeForm() {
             </div>
             <h2 className="text-3xl font-bold text-primary">Trade Submitted!</h2>
             <p className="text-gray-600 max-w-md mx-auto">
-                Thank you for trading with Papa's Puzzles! We have received your request.
-                Please check your email for shipping instructions for your donation.
+                Thank you for trading with Papa&apos;s Puzzles! We have received your request.
+                We will confirm your drop-off appointment and reach out with details.
             </p>
             <div className="pt-6">
                 <a
@@ -303,21 +445,20 @@ function TradeForm() {
         </div>
     );
 
+    const progressStep = step - 1; // steps 2-5 map to progress 1-4
+
     return (
         <div className="min-h-screen bg-background">
             <Navbar />
-
             <main className="max-w-3xl mx-auto p-4 sm:p-8">
                 <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-10 min-h-[600px]">
-                    {/* Progress Bar */}
-                    {step < 4 && (
+                    {step >= 2 && step <= 5 && (
                         <div className="flex justify-between mb-8 relative">
                             <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-100 -z-10 rounded-full" />
-                            {[1, 2, 3].map((s) => (
+                            {[1, 2, 3, 4].map((s) => (
                                 <div
                                     key={s}
-                                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors ${step >= s ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'
-                                        }`}
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors ${progressStep >= s ? "bg-primary text-white" : "bg-gray-100 text-gray-400"}`}
                                 >
                                     {s}
                                 </div>
@@ -325,10 +466,18 @@ function TradeForm() {
                         </div>
                     )}
 
-                    {step === 1 && renderStep1()}
+                    {authLoading && (
+                        <div className="flex items-center justify-center h-64 text-gray-400">Loading...</div>
+                    )}
+                    {!authLoading && step === 1 && !user && renderStep1()}
+                    {!authLoading && step === 1 && user && !userTierLoaded && (
+                        <div className="flex items-center justify-center h-64 text-gray-400">Loading your profile...</div>
+                    )}
                     {step === 2 && renderStep2()}
                     {step === 3 && renderStep3()}
-                    {step === 4 && renderSuccess()}
+                    {step === 4 && renderStep4()}
+                    {step === 5 && renderStep5()}
+                    {step === 6 && renderSuccess()}
                 </div>
             </main>
         </div>

@@ -12,6 +12,7 @@ export default function AdminPage() {
 
     const [donations, setDonations] = useState<any[]>([]);
     const [requests, setRequests] = useState<any[]>([]);
+    const [trades, setTrades] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
     // Edit Mode State
@@ -52,16 +53,19 @@ export default function AdminPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [donationsRes, requestsRes] = await Promise.all([
+            const [donationsRes, requestsRes, tradesRes] = await Promise.all([
                 fetch("/api/admin/donations", { cache: "no-store" }),
-                fetch("/api/admin/requests", { cache: "no-store" })
+                fetch("/api/admin/requests", { cache: "no-store" }),
+                fetch("/api/admin/trades", { cache: "no-store" }),
             ]);
 
             const donationsData = await donationsRes.json();
             const requestsData = await requestsRes.json();
+            const tradesData = await tradesRes.json();
 
             setDonations(donationsData.data || []);
             setRequests(requestsData.data || []);
+            setTrades(tradesData.data || []);
         } catch (err) {
             console.error("Failed to fetch data", err);
         } finally {
@@ -80,6 +84,34 @@ export default function AdminPage() {
             fetchData();
         } catch (err) {
             console.error("Failed to update status", err);
+        }
+    };
+
+    const handlePublishDonation = async (id: string) => {
+        try {
+            const res = await fetch(`/api/admin/donations/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "available" }),
+            });
+            if (res.ok) fetchData();
+            else alert("Failed to publish donation");
+        } catch (err) {
+            console.error("Failed to publish", err);
+        }
+    };
+
+    const handleConfirmDropoff = async (tradeId: string) => {
+        try {
+            const res = await fetch(`/api/admin/trades/${tradeId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "confirm_dropoff" }),
+            });
+            if (res.ok) fetchData();
+            else alert("Failed to confirm drop-off");
+        } catch (err) {
+            console.error("Failed to confirm drop-off", err);
         }
     };
 
@@ -232,6 +264,8 @@ export default function AdminPage() {
     }
 
     const pendingRequestsCount = requests.filter(r => r.status !== 'confirmed').length;
+    const pendingDonations = donations.filter(d => d.status === 'pending_admin_review');
+    const pendingTradesCount = trades.filter(t => t.status !== 'completed').length;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -281,6 +315,36 @@ export default function AdminPage() {
                     >
                         <Package className="w-5 h-5" />
                         {editingId ? "Edit Inventory" : "Add Inventory"}
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab("pending-donations"); resetForm(); }}
+                        className={`relative flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${activeTab === "pending-donations"
+                            ? "bg-yellow-500 text-white shadow-md"
+                            : "bg-white text-gray-600 hover:bg-gray-100"
+                            }`}
+                    >
+                        <Check className="w-5 h-5" />
+                        Pending Donations
+                        {pendingDonations.length > 0 && (
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm animate-pulse">
+                                {pendingDonations.length}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab("trades"); resetForm(); }}
+                        className={`relative flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${activeTab === "trades"
+                            ? "bg-accent text-gray-800 shadow-md"
+                            : "bg-white text-gray-600 hover:bg-gray-100"
+                            }`}
+                    >
+                        <Search className="w-5 h-5" />
+                        Trades ({trades.length})
+                        {pendingTradesCount > 0 && (
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm animate-pulse">
+                                {pendingTradesCount}
+                            </span>
+                        )}
                     </button>
                 </div>
 
@@ -507,6 +571,115 @@ export default function AdminPage() {
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        )}
+
+                        {activeTab === "pending-donations" && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-gray-50 border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Photo</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Name</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Pieces</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Condition</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Donor Email</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {pendingDonations.map((d) => (
+                                            <tr key={d.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4">
+                                                    {d.image_url ? (
+                                                        <img src={d.image_url} alt={d.name} className="w-16 h-16 object-cover rounded-lg" />
+                                                    ) : (
+                                                        <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300">
+                                                            <Package className="w-6 h-6" />
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 font-medium">{d.name}</td>
+                                                <td className="px-6 py-4 text-gray-500">{d.pieces}</td>
+                                                <td className="px-6 py-4 text-gray-500 capitalize">{d.condition}</td>
+                                                <td className="px-6 py-4 text-gray-500">{d.email}</td>
+                                                <td className="px-6 py-4">
+                                                    <button
+                                                        onClick={() => handlePublishDonation(d.id)}
+                                                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium flex items-center gap-1 shadow-sm transition-colors"
+                                                    >
+                                                        <Check className="w-3 h-3" /> Publish
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {pendingDonations.length === 0 && (
+                                            <tr>
+                                                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                                                    No pending donations.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {activeTab === "trades" && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-gray-50 border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">User</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Donated</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Receiving</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Drop-off</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Status</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {trades.map((t) => (
+                                            <tr key={t.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4">
+                                                    <div className="font-medium">{t.user_name}</div>
+                                                    <div className="text-sm text-gray-500">{t.user_email}</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-gray-500">
+                                                    {(t.given_donation_names || []).join(", ") || t.given_donation_id || "—"}
+                                                </td>
+                                                <td className="px-6 py-4 text-gray-500">
+                                                    {t.received_donation_name || t.received_donation_id || "—"}
+                                                </td>
+                                                <td className="px-6 py-4 text-gray-500 text-sm">
+                                                    {t.dropoff_datetime || "—"}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${t.status === "completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                                                        {t.status || "pending"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {t.status !== "completed" && (
+                                                        <button
+                                                            onClick={() => handleConfirmDropoff(t.id)}
+                                                            className="px-3 py-1 bg-primary text-white rounded hover:bg-red-400 text-sm font-medium flex items-center gap-1 shadow-sm transition-colors"
+                                                        >
+                                                            <Check className="w-3 h-3" /> Confirm Drop-off
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {trades.length === 0 && (
+                                            <tr>
+                                                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                                                    No trades yet.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
                     </div>

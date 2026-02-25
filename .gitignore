@@ -30,3 +30,5 @@ uploads/
 # Misc
 coverage/
 *.log
+client/tsconfig.tsbuildinfo
+client/node_modules
