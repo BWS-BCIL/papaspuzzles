@@ -46,36 +46,35 @@ function TradeForm() {
     const [dropoffTime, setDropoffTime] = useState(TIME_SLOTS[0]);
 
     useEffect(() => {
-        if (user) {
-            setUserInfo({
-                name: user.displayName || "",
-                email: user.email || "",
-            });
-            fetchUserTier();
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
-
-    const fetchUserTier = async () => {
         if (!user) return;
-        try {
-            const res = await fetch(`/api/users?uid=${user.uid}`, { cache: "no-store" });
-            if (res.ok) {
-                const data = await res.json();
-                const firstTime = data.data?.tradeTier === "first-time";
-                setIsFirstTime(firstTime);
-                setDonations(firstTime ? [emptyDonation(), emptyDonation()] : [emptyDonation()]);
-            } else {
+
+        setUserInfo({
+            name: user.displayName || "",
+            email: user.email || "",
+        });
+
+        const fetchUserTier = async () => {
+            try {
+                const res = await fetch(`/api/users?uid=${user.uid}`, { cache: "no-store" });
+                if (res.ok) {
+                    const data = await res.json();
+                    const firstTime = data.data?.tradeTier === "first-time";
+                    setIsFirstTime(firstTime);
+                    setDonations(firstTime ? [emptyDonation(), emptyDonation()] : [emptyDonation()]);
+                } else {
+                    setIsFirstTime(true);
+                    setDonations([emptyDonation(), emptyDonation()]);
+                }
+            } catch {
                 setIsFirstTime(true);
                 setDonations([emptyDonation(), emptyDonation()]);
+            } finally {
+                setUserTierLoaded(true);
             }
-        } catch {
-            setIsFirstTime(true);
-            setDonations([emptyDonation(), emptyDonation()]);
-        } finally {
-            setUserTierLoaded(true);
-        }
-    };
+        };
+
+        fetchUserTier();
+    }, [user]);
 
     // Advance past auth gate once user is signed in and tier is loaded
     useEffect(() => {

@@ -118,11 +118,13 @@ export default function ExplorePage() {
                                     <div className="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded-md text-xs font-bold shadow-sm text-gray-700">
                                         {puzzle.pieces} pcs
                                     </div>
-                                    <div className={`absolute top-2 left-2 px-2 py-1 rounded-md text-xs font-bold shadow-sm text-white ${puzzle.difficulty === 'easy' ? 'bg-green-400' :
-                                        puzzle.difficulty === 'medium' ? 'bg-yellow-400' : 'bg-red-400'
-                                        }`}>
-                                        {puzzle.difficulty?.toUpperCase()}
-                                    </div>
+                                    {puzzle.difficulty && (
+                                        <div className={`absolute top-2 left-2 px-2 py-1 rounded-md text-xs font-bold shadow-sm text-white ${puzzle.difficulty === 'easy' ? 'bg-green-400' :
+                                            puzzle.difficulty === 'medium' ? 'bg-yellow-400' : 'bg-red-400'
+                                            }`}>
+                                            {puzzle.difficulty.toUpperCase()}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="p-4 flex flex-col flex-grow">
