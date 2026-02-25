@@ -3,7 +3,7 @@ import * as admin from 'firebase-admin';
 if (!admin.apps.length) {
     let credential;
 
-    // 1. Try parsing the service account JSON from environment variable (Best Practice for Netlify/Vercel)
+    // 1. Try parsing the service account JSON from environment variable (Best Practice for Vercel)
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         try {
             const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -32,29 +32,29 @@ if (!admin.apps.length) {
     }
 }
 
-function getAdminDb(): admin.firestore.Firestore {
+function requireAdminDb(): admin.firestore.Firestore {
     if (!admin.apps.length) {
-        throw new Error('Firebase Admin is not initialized. Please set FIREBASE_SERVICE_ACCOUNT or FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY environment variables.');
+        throw new Error('Firebase Admin is not initialized. Ensure FIREBASE_SERVICE_ACCOUNT or FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY environment variables are set in Vercel.');
     }
     return admin.firestore();
 }
 
-function getAdminStorage(): admin.storage.Storage {
+function requireAdminStorage(): admin.storage.Storage {
     if (!admin.apps.length) {
-        throw new Error('Firebase Admin is not initialized. Please set FIREBASE_SERVICE_ACCOUNT or FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY environment variables.');
+        throw new Error('Firebase Admin is not initialized. Ensure FIREBASE_SERVICE_ACCOUNT or FIREBASE_STORAGE_BUCKET environment variables are set in Vercel.');
     }
     return admin.storage();
 }
 
 export const adminDb = new Proxy({} as admin.firestore.Firestore, {
     get(_target, prop) {
-        return (getAdminDb() as any)[prop];
+        return (requireAdminDb() as any)[prop];
     }
 });
 
 export const adminStorage = new Proxy({} as admin.storage.Storage, {
     get(_target, prop) {
-        return (getAdminStorage() as any)[prop];
+        return (requireAdminStorage() as any)[prop];
     }
 });
 
