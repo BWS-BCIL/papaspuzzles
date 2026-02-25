@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const body = await request.json();
         const { status } = body;
-        const { id } = params;
+        const { id } = await params;
 
         await adminDb.collection('requests').doc(id).update({ status });
 

@@ -3,10 +3,10 @@ import { adminDb } from '@/lib/firebaseAdmin';
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
 
         await adminDb.collection('donations').doc(id).delete();
 
@@ -18,10 +18,10 @@ export async function DELETE(
 
 export async function PATCH(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
         const body = await request.json();
 
         await adminDb.collection('donations').doc(id).update(body);
