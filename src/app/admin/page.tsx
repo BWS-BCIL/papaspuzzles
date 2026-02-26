@@ -2,21 +2,24 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Lock, Package, Search, Check, X, Trash2, Edit } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Lock, Package, Search, Check, Trash2, Edit } from "lucide-react";
+import type { Donation, TradeRecord, PuzzleRequest } from "@/types/puzzle";
 
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [activeTab, setActiveTab] = useState("donations");
+    const router = useRouter();
 
-    const [donations, setDonations] = useState<any[]>([]);
-    const [requests, setRequests] = useState<any[]>([]);
-    const [trades, setTrades] = useState<any[]>([]);
+    const [donations, setDonations] = useState<Donation[]>([]);
+    const [requests, setRequests] = useState<PuzzleRequest[]>([]);
+    const [trades, setTrades] = useState<TradeRecord[]>([]);
     const [loading, setLoading] = useState(false);
 
     // Edit Mode State
-    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     const [newPuzzle, setNewPuzzle] = useState({
         name: "",
@@ -29,6 +32,16 @@ export default function AdminPage() {
     const [uploading, setUploading] = useState(false);
     const [puzzlePhoto, setPuzzlePhoto] = useState<File | null>(null);
     const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // For editing w/o new photo
+
+    // Check session cookie on mount to restore authenticated state
+    useEffect(() => {
+        fetch("/api/admin/donations", { cache: "no-store" }).then((res) => {
+            if (res.ok) {
+                setIsAuthenticated(true);
+                fetchData();
+            }
+        }).catch(() => {});
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,7 +58,7 @@ export default function AdminPage() {
             } else {
                 setError("Invalid password");
             }
-        } catch (err) {
+        } catch {
             setError("Login failed");
         }
     };
@@ -73,7 +86,7 @@ export default function AdminPage() {
         }
     };
 
-    const markFulfilled = async (id: number) => {
+    const markFulfilled = async (id: string) => {
         try {
             await fetch(`/api/admin/requests/${id}`, {
                 method: "PATCH",
@@ -115,7 +128,7 @@ export default function AdminPage() {
         }
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this puzzle? This action cannot be undone.")) return;
 
         try {
@@ -134,11 +147,11 @@ export default function AdminPage() {
         }
     };
 
-    const handleEdit = (puzzle: any) => {
+    const handleEdit = (puzzle: Donation) => {
         setEditingId(puzzle.id);
         setNewPuzzle({
             name: puzzle.name,
-            pieces: puzzle.pieces,
+            pieces: String(puzzle.pieces),
             difficulty: puzzle.difficulty || "medium",
             theme: puzzle.theme || "landscape",
             condition: puzzle.condition || "good",
@@ -219,9 +232,9 @@ export default function AdminPage() {
             setActiveTab("donations");
             fetchData();
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            alert("Error: " + err.message);
+            alert("Error: " + (err instanceof Error ? err.message : 'Unknown error'));
         } finally {
             setUploading(false);
         }
@@ -272,7 +285,10 @@ export default function AdminPage() {
             <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
                 <h1 className="text-xl font-bold text-gray-800">Puzzle Swap Admin</h1>
                 <button
-                    onClick={() => setIsAuthenticated(false)}
+                    onClick={async () => {
+                        await fetch("/api/admin/logout", { method: "POST" });
+                        router.push("/");
+                    }}
                     className="text-sm text-red-500 hover:underline"
                 >
                     Logout
@@ -646,7 +662,7 @@ export default function AdminPage() {
                                                     <div className="text-sm text-gray-500">{t.user_email}</div>
                                                 </td>
                                                 <td className="px-6 py-4 text-gray-500">
-                                                    {(t.given_donation_names || []).join(", ") || t.given_donation_id || "—"}
+                                                    {(t.given_donation_names || []).join(", ") || t.given_donation_ids?.[0] || "—"}
                                                 </td>
                                                 <td className="px-6 py-4 text-gray-500">
                                                     {t.received_donation_name || t.received_donation_id || "—"}

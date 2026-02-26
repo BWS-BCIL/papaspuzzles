@@ -91,7 +91,8 @@ router.patch('/admin/requests/:id', (req, res) => {
 // Admin: Login (Simple check)
 router.post('/admin/login', (req, res) => {
     const { password } = req.body;
-    // Hardcoded password for MVP
+    // NOTE: This is the legacy/unused server. The active app uses Next.js API routes
+    // with environment variable-based auth (ADMIN_PASSWORD). Do not rely on this.
     if (password === 'puzzleadmin123') {
         res.json({ success: true });
     } else {

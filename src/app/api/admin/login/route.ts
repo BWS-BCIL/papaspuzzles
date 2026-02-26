@@ -1,17 +1,28 @@
 import { NextResponse } from 'next/server';
+import { SignJWT } from 'jose';
+
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD!;
+const JWT_SECRET = new TextEncoder().encode(process.env.ADMIN_JWT_SECRET!);
 
 export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        const { password } = body;
+    const { password } = await request.json();
 
-        // Hardcoded password for MVP, matching original server logic
-        if (password === 'puzzleadmin123') {
-            return NextResponse.json({ success: true });
-        } else {
-            return NextResponse.json({ success: false, message: 'Invalid password' }, { status: 401 });
-        }
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
+    if (!ADMIN_PASSWORD || password !== ADMIN_PASSWORD) {
+        return NextResponse.json({ success: false, message: 'Invalid password' }, { status: 401 });
     }
+
+    const token = await new SignJWT({ role: 'admin' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setExpirationTime('8h')
+        .sign(JWT_SECRET);
+
+    const response = NextResponse.json({ success: true });
+    response.cookies.set('admin_session', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 8,
+        path: '/',
+    });
+    return response;
 }

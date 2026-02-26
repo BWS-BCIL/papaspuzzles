@@ -31,3 +31,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Legacy server artifacts
+server/puzzles.db
+server/*.db
+server/test_image.jpg
+server/uploads/
