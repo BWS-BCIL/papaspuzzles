@@ -6,17 +6,22 @@ import { useState } from "react";
 import { User, Search, LogIn, LogOut, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
+import { getAuthErrorMessage } from "@/lib/firebaseErrorMessages";
+
 export default function Navbar() {
-    const { user, loading, signIn, signUp, signOut } = useAuth();
+    const { user, loading, signIn, signUp, signOut, resetPassword } = useAuth();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
     const [authError, setAuthError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleAuthSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
         setAuthError("");
+        setIsSubmitting(true);
         try {
             if (authMode === "signin") {
                 await signIn(email, password);
@@ -27,7 +32,9 @@ export default function Navbar() {
             setEmail("");
             setPassword("");
         } catch (err: unknown) {
-            setAuthError(err instanceof Error ? err.message : "Authentication failed");
+            setAuthError(getAuthErrorMessage(err));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -148,11 +155,32 @@ export default function Navbar() {
                             )}
                             <button
                                 type="submit"
-                                className="bg-primary text-white px-4 py-2 rounded-full font-bold hover:bg-red-400 transition-colors shadow-sm"
+                                disabled={isSubmitting}
+                                className="bg-primary text-white px-4 py-2 rounded-full font-bold hover:bg-red-400 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                             >
-                                {authMode === "signin" ? "Sign In" : "Sign Up"}
+                                {isSubmitting ? "Please wait…" : authMode === "signin" ? "Sign In" : "Sign Up"}
                             </button>
                         </form>
+                        {authMode === "signin" && (
+                            <div className="text-center mt-2">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (!email) { setAuthError("Enter your email above first."); return; }
+                                        try {
+                                            await resetPassword(email);
+                                            setAuthError("");
+                                            alert("Password reset email sent!");
+                                        } catch (err: unknown) {
+                                            setAuthError(getAuthErrorMessage(err));
+                                        }
+                                    }}
+                                    className="text-sm text-gray-500 hover:text-primary hover:underline"
+                                >
+                                    Forgot password?
+                                </button>
+                            </div>
+                        )}
                         <p className="text-sm text-gray-500 text-center mt-4">
                             {authMode === "signin" ? (
                                 <>

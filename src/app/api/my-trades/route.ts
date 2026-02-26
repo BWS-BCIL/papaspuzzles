@@ -15,25 +15,25 @@ export async function GET(request: Request) {
             .orderBy('created_at', 'desc')
             .get();
 
-        const trades = tradesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+        const trades = tradesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (Record<string, unknown> & { id: string })[];
 
         // Fetch related donations manually (NoSQL join)
-        const formattedData = await Promise.all(trades.map(async (trade: any) => {
+        const formattedData = await Promise.all(trades.map(async (trade) => {
             let givenName = '';
             let receivedName = '';
             let receivedImage = '';
 
             if (trade.given_donation_id) {
-                const givenDoc = await adminDb.collection('donations').doc(trade.given_donation_id).get();
-                if (givenDoc.exists) givenName = givenDoc.data()?.name;
+                const givenDoc = await adminDb.collection('donations').doc(trade.given_donation_id as string).get();
+                if (givenDoc.exists) givenName = (givenDoc.data() as { name?: string })?.name ?? '';
             }
 
             if (trade.received_donation_id) {
-                const receivedDoc = await adminDb.collection('donations').doc(trade.received_donation_id).get();
+                const receivedDoc = await adminDb.collection('donations').doc(trade.received_donation_id as string).get();
                 if (receivedDoc.exists) {
-                    const data = receivedDoc.data();
-                    receivedName = data?.name;
-                    receivedImage = data?.image_url;
+                    const data = receivedDoc.data() as { name?: string; image_url?: string } | undefined;
+                    receivedName = data?.name ?? '';
+                    receivedImage = data?.image_url ?? '';
                 }
             }
 
@@ -46,8 +46,8 @@ export async function GET(request: Request) {
         }));
 
         return NextResponse.json({ message: 'success', data: formattedData });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('MyTrades error:', error);
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 400 });
     }
 }

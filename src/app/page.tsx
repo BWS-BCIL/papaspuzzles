@@ -68,8 +68,7 @@ export default function Home() {
             </main>
 
             <footer className="py-8 text-center text-sm text-gray-400 bg-white border-t border-gray-100">
-                <p>© 2024 Papa's Puzzles. Spreading joy one piece at a time.</p>
-                <Link href="/admin" className="hover:underline mt-2 inline-block">Admin Access</Link>
+                <p>© {new Date().getFullYear()} Papa&apos;s Puzzles. Spreading joy one piece at a time.</p>
             </footer>
         </div>
     );

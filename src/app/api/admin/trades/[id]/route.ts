@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 import * as admin from 'firebase-admin';
+import { requireAdminSession } from '@/lib/adminAuth';
 
 export async function PATCH(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const authError = await requireAdminSession();
+    if (authError) return authError;
+
     try {
         const { id } = await params;
         const body = await request.json();
@@ -18,7 +22,7 @@ export async function PATCH(
                 return NextResponse.json({ error: 'Trade not found' }, { status: 404 });
             }
 
-            const trade = tradeDoc.data() as any;
+            const trade = tradeDoc.data() as { uid?: string; user_email?: string; user_name?: string };
 
             // Set trade status to completed
             await adminDb.collection('trades').doc(id).update({
@@ -51,8 +55,8 @@ export async function PATCH(
         // Generic update
         await adminDb.collection('trades').doc(id).update(body);
         return NextResponse.json({ message: 'success' });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('PATCH /api/admin/trades/[id] error:', error);
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 400 });
     }
 }

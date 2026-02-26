@@ -48,7 +48,7 @@ NEXT_PUBLIC_USE_MOCK_DATA=true
 - **Request**: Form to request puzzles.
 - **Admin Panel**: View donations and requests, add inventory.
   - URL: `/admin`
-  - Password: `puzzleadmin123`
+  - Password: stored in ADMIN_PASSWORD environment variable (never commit this)
 
 ## Production Checklist (Vercel)
 - [ ] Set all Firebase env vars in Vercel (both public and admin variables).

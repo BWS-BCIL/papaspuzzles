@@ -1,18 +1,35 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
+import { validateString, validateEmail } from '@/lib/validate';
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const {
+        let {
             userName, userEmail, uid,
             donations, // array of donation objects
             wantedPuzzleId,
             dropoffDatetime,
         } = body;
 
+        try {
+            userName = validateString(userName, 'User name');
+            userEmail = validateEmail(userEmail);
+        } catch (e: unknown) {
+            return NextResponse.json({ error: e instanceof Error ? e.message : 'Validation error' }, { status: 400 });
+        }
+
         if (!donations || !Array.isArray(donations) || donations.length === 0) {
             return NextResponse.json({ error: 'donations array is required' }, { status: 400 });
+        }
+
+        // Validate each donation's name
+        for (const donation of donations) {
+            try {
+                validateString(donation.name, 'Donation name');
+            } catch (e: unknown) {
+                return NextResponse.json({ error: e instanceof Error ? e.message : 'Validation error' }, { status: 400 });
+            }
         }
 
         // 1. Insert donation documents (1 or 2 depending on trade tier)
@@ -67,8 +84,8 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ message: 'success', tradeId: tradeRef.id });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Trade error:', error);
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 400 });
     }
 }

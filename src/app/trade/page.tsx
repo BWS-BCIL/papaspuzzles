@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
+import { getAuthErrorMessage } from "@/lib/firebaseErrorMessages";
 import { CheckCircle, Upload, ArrowRight, ArrowLeft, LogIn } from "lucide-react";
 
 const TIME_SLOTS = ["10:00 AM", "12:00 PM", "2:00 PM", "4:00 PM"];
@@ -43,6 +44,7 @@ function TradeForm() {
     const [authPassword, setAuthPassword] = useState("");
     const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
     const [authError, setAuthError] = useState("");
+    const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
 
     const [userInfo, setUserInfo] = useState({ name: "", email: "" });
     const [donations, setDonations] = useState<DonationForm[]>([emptyDonation()]);
@@ -168,7 +170,9 @@ function TradeForm() {
             <form
                 onSubmit={async (e) => {
                     e.preventDefault();
+                    if (isSubmittingAuth) return;
                     setAuthError("");
+                    setIsSubmittingAuth(true);
                     try {
                         if (authMode === "signin") {
                             await signIn(authEmail, authPassword);
@@ -176,7 +180,9 @@ function TradeForm() {
                             await signUp(authEmail, authPassword);
                         }
                     } catch (err: unknown) {
-                        setAuthError(err instanceof Error ? err.message : "Authentication failed");
+                        setAuthError(getAuthErrorMessage(err));
+                    } finally {
+                        setIsSubmittingAuth(false);
                     }
                 }}
                 className="flex flex-col gap-4 max-w-sm mx-auto"
@@ -200,9 +206,10 @@ function TradeForm() {
                 {authError && <p className="text-red-500 text-sm">{authError}</p>}
                 <button
                     type="submit"
-                    className="bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-red-400 transition-colors shadow-sm"
+                    disabled={isSubmittingAuth}
+                    className="bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-red-400 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                    {authMode === "signin" ? "Sign In" : "Sign Up"}
+                    {isSubmittingAuth ? "Please wait…" : authMode === "signin" ? "Sign In" : "Sign Up"}
                 </button>
             </form>
             <p className="text-sm text-gray-500">

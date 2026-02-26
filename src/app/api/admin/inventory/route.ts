@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
+import { requireAdminSession } from '@/lib/adminAuth';
 
 export async function POST(request: Request) {
+    const authError = await requireAdminSession();
+    if (authError) return authError;
+
     try {
         const body = await request.json();
         const { name, pieces, difficulty, theme, condition, email, image_url } = body;
@@ -21,7 +25,7 @@ export async function POST(request: Request) {
         const newDoc = await docRef.get();
 
         return NextResponse.json({ message: 'success', data: { id: docRef.id, ...newDoc.data() } });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
+    } catch (error: unknown) {
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 400 });
     }
 }
