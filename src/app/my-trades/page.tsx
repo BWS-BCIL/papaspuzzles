@@ -2,11 +2,19 @@
 
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
-import { Search, Package, ArrowRight } from "lucide-react";
+import { Package, ArrowRight } from "lucide-react";
+
+interface TradeDisplay {
+    id: string;
+    given_name: string;
+    received_name: string;
+    received_image?: string | null;
+    status: string;
+}
 
 export default function MyTradesPage() {
     const [email, setEmail] = useState("");
-    const [trades, setTrades] = useState<any[]>([]);
+    const [trades, setTrades] = useState<TradeDisplay[]>([]);
     const [searched, setSearched] = useState(false);
     const [loading, setLoading] = useState(false);
 

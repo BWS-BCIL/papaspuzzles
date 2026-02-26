@@ -34,7 +34,7 @@ export default function DonatePage() {
             if (!res.ok) throw new Error("Failed to submit donation");
 
             setSubmitted(true);
-        } catch (err) {
+        } catch {
             setError("Something went wrong. Please try again.");
         }
     };
@@ -46,7 +46,7 @@ export default function DonatePage() {
                     <CheckCircle className="w-16 h-16 text-secondary mx-auto mb-4" />
                     <h2 className="text-2xl font-bold text-primary mb-2">Thank You!</h2>
                     <p className="text-gray-600 mb-6">
-                        Your puzzle donation has been recorded. We'll contact you when we find a match!
+                        Your puzzle donation has been recorded. We&apos;ll contact you when we find a match!
                     </p>
                     <Link
                         href="/"

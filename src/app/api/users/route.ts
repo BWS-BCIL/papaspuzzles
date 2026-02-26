@@ -26,9 +26,9 @@ export async function GET(request: Request) {
             message: 'success',
             data: { ...userData, tradeTier },
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('GET /api/users error:', error);
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 400 });
     }
 }
 
@@ -62,8 +62,8 @@ export async function POST(request: Request) {
 
         const updatedDoc = await userRef.get();
         return NextResponse.json({ message: 'success', data: updatedDoc.data() });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('POST /api/users error:', error);
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 400 });
     }
 }

@@ -5,7 +5,8 @@ import { validateString, validateEmail, validatePositiveInt } from '@/lib/valida
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        let { name, pieces, difficulty, theme, condition, email } = body;
+        let { name, pieces, email } = body;
+        const { difficulty, theme, condition } = body;
 
         try {
             name = validateString(name, 'Name');

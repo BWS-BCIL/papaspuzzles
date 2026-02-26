@@ -32,7 +32,7 @@ export default function RequestPage() {
             if (!res.ok) throw new Error("Failed to submit request");
 
             setSubmitted(true);
-        } catch (err) {
+        } catch {
             setError("Something went wrong. Please try again.");
         }
     };
@@ -44,7 +44,7 @@ export default function RequestPage() {
                     <CheckCircle className="w-16 h-16 text-secondary mx-auto mb-4" />
                     <h2 className="text-2xl font-bold text-primary mb-2">Request Received!</h2>
                     <p className="text-gray-600 mb-6">
-                        We've noted your request. We'll email you when a matching puzzle becomes available!
+                        We&apos;ve noted your request. We&apos;ll email you when a matching puzzle becomes available!
                     </p>
                     <Link
                         href="/"
@@ -66,7 +66,7 @@ export default function RequestPage() {
 
             <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-lg p-6 sm:p-10">
                 <h1 className="text-3xl font-bold text-secondary-dark mb-2" style={{ color: '#4A4A4A' }}>Request a Puzzle</h1>
-                <p className="text-gray-500 mb-8">Tell us what kind of puzzle you're looking for.</p>
+                <p className="text-gray-500 mb-8">Tell us what kind of puzzle you&apos;re looking for.</p>
 
                 {error && (
                     <div className="bg-red-50 text-red-500 p-3 rounded-lg mb-6 text-sm">

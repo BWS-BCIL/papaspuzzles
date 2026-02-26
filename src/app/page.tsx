@@ -23,7 +23,7 @@ export default function Home() {
                     </div>
 
                     <h1 className="text-6xl font-extrabold tracking-tight text-primary drop-shadow-sm">
-                        Papa's Puzzles
+                        Papa&apos;s Puzzles
                     </h1>
 
                     <h2 className="text-3xl font-semibold text-secondary-dark max-w-2xl mx-auto leading-relaxed">
@@ -53,7 +53,7 @@ export default function Home() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 text-left">
                         <div className="bg-white p-6 rounded-xl shadow-sm">
                             <h3 className="text-xl font-bold text-gray-800 mb-2">1. Donate</h3>
-                            <p className="text-gray-600">List a puzzle you've completed and are ready to pass on.</p>
+                            <p className="text-gray-600">List a puzzle you&apos;ve completed and are ready to pass on.</p>
                         </div>
                         <div className="bg-white p-6 rounded-xl shadow-sm">
                             <h3 className="text-xl font-bold text-gray-800 mb-2">2. Choose</h3>
@@ -61,7 +61,7 @@ export default function Home() {
                         </div>
                         <div className="bg-white p-6 rounded-xl shadow-sm">
                             <h3 className="text-xl font-bold text-gray-800 mb-2">3. Swap</h3>
-                            <p className="text-gray-600">We'll coordinate the exchange so everyone gets a new puzzle!</p>
+                            <p className="text-gray-600">We&apos;ll coordinate the exchange so everyone gets a new puzzle!</p>
                         </div>
                     </div>
                 </div>
