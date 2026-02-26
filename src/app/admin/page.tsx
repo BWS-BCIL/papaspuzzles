@@ -40,7 +40,10 @@ export default function AdminPage() {
                 setIsAuthenticated(true);
                 fetchData();
             }
-        }).catch(() => {});
+        }).catch((err) => {
+            console.debug("Session check failed (not authenticated):", err);
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleLogin = async (e: React.FormEvent) => {

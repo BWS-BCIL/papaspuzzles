@@ -10,7 +10,7 @@ export function validateString(value: unknown, fieldName: string, maxLength = 20
 
 export function validateEmail(value: unknown): string {
     const email = validateString(value, 'Email', 254);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
         throw new Error('Invalid email address.');
     }
     return email;

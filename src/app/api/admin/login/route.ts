@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD!;
-const JWT_SECRET = new TextEncoder().encode(process.env.ADMIN_JWT_SECRET!);
+if (!process.env.ADMIN_PASSWORD || !process.env.ADMIN_JWT_SECRET) {
+    throw new Error('ADMIN_PASSWORD and ADMIN_JWT_SECRET environment variables must be set.');
+}
+
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const JWT_SECRET = new TextEncoder().encode(process.env.ADMIN_JWT_SECRET);
 
 export async function POST(request: Request) {
     const { password } = await request.json();
