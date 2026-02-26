@@ -48,13 +48,13 @@ function requireAdminStorage(): admin.storage.Storage {
 
 export const adminDb = new Proxy({} as admin.firestore.Firestore, {
     get(_target, prop) {
-        return (requireAdminDb() as any)[prop];
+        return Reflect.get(requireAdminDb(), prop);
     }
 });
 
 export const adminStorage = new Proxy({} as admin.storage.Storage, {
     get(_target, prop) {
-        return (requireAdminStorage() as any)[prop];
+        return Reflect.get(requireAdminStorage(), prop);
     }
 });
 

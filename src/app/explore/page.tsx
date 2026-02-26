@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Search, Upload } from "lucide-react";
+import { Donation } from "@/types/puzzle";
 
 const PIECE_OPTIONS = ["All", "100", "300", "500", "1000", "2000+"];
 const THEME_OPTIONS = ["All", "Animals", "Landscape", "Art", "Food", "Cityscape", "Movies", "Other"];
 const DIFFICULTY_OPTIONS = ["All", "easy", "medium", "hard"];
 
 export default function ExplorePage() {
-    const [inventory, setInventory] = useState<any[]>([]);
+    const [inventory, setInventory] = useState<Donation[]>([]);
     const [loading, setLoading] = useState(true);
     const [filterPieces, setFilterPieces] = useState("All");
     const [filterTheme, setFilterTheme] = useState("All");

@@ -16,9 +16,9 @@ export async function GET() {
         }));
 
         return NextResponse.json({ message: 'success', data });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Inventory error:', error);
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 400 });
     }
 }
 

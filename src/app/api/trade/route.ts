@@ -5,8 +5,9 @@ import { validateString, validateEmail } from '@/lib/validate';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        let {
-            userName, userEmail, uid,
+        let { userName, userEmail } = body;
+        const {
+            uid,
             donations, // array of donation objects
             wantedPuzzleId,
             dropoffDatetime,

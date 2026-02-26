@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { getAuthErrorMessage } from "@/lib/firebaseErrorMessages";
 import { CheckCircle, Upload, ArrowRight, ArrowLeft, LogIn } from "lucide-react";
+import { Donation } from "@/types/puzzle";
 
 const TIME_SLOTS = ["10:00 AM", "12:00 PM", "2:00 PM", "4:00 PM"];
 
@@ -36,7 +37,7 @@ function TradeForm() {
 
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
-    const [inventory, setInventory] = useState<any[]>([]);
+    const [inventory, setInventory] = useState<Donation[]>([]);
     const [isFirstTime, setIsFirstTime] = useState(false);
     const [userTierLoaded, setUserTierLoaded] = useState(false);
 

@@ -60,7 +60,7 @@ export default function Navbar() {
                                     priority
                                 />
                             </div>
-                            <span className="text-xl font-bold text-primary">Papa's Puzzles</span>
+                            <span className="text-xl font-bold text-primary">Papa&apos;s Puzzles</span>
                         </Link>
                     </div>
 
