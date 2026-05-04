@@ -7,7 +7,7 @@ import { Lock, Package, Search, Check, Trash2, Edit } from "lucide-react";
 import type { Donation, TradeRecord, PuzzleRequest } from "@/types/puzzle";
 
 export default function AdminPage() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(true);
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [activeTab, setActiveTab] = useState("donations");
@@ -33,16 +33,9 @@ export default function AdminPage() {
     const [puzzlePhoto, setPuzzlePhoto] = useState<File | null>(null);
     const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // For editing w/o new photo
 
-    // Check session cookie on mount to restore authenticated state
+    // Fetch data on mount
     useEffect(() => {
-        fetch("/api/admin/donations", { cache: "no-store" }).then((res) => {
-            if (res.ok) {
-                setIsAuthenticated(true);
-                fetchData();
-            }
-        }).catch((err) => {
-            console.debug("Session check failed (not authenticated):", err);
-        });
+        fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
