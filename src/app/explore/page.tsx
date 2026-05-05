@@ -12,6 +12,7 @@ const DIFFICULTY_OPTIONS = ["All", "easy", "medium", "hard"];
 export default function ExplorePage() {
     const [inventory, setInventory] = useState<Donation[]>([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [filterPieces, setFilterPieces] = useState("All");
     const [filterTheme, setFilterTheme] = useState("All");
     const [filterDifficulty, setFilterDifficulty] = useState("All");
@@ -21,12 +22,20 @@ export default function ExplorePage() {
     }, []);
 
     const fetchInventory = async () => {
+        setLoading(true);
+        setFetchError(null);
         try {
             const res = await fetch("/api/inventory", { cache: "no-store" });
             const data = await res.json();
-            setInventory(data.data || []);
+            if (!res.ok) {
+                console.error("Inventory API error:", data.error);
+                setFetchError(data.error || "Failed to load puzzles");
+            } else {
+                setInventory(data.data || []);
+            }
         } catch (err) {
             console.error("Failed to load inventory", err);
+            setFetchError("Network error — please try again.");
         } finally {
             setLoading(false);
         }
@@ -97,6 +106,17 @@ export default function ExplorePage() {
 
                 {loading ? (
                     <div className="text-center py-20 text-gray-500">Loading puzzles...</div>
+                ) : fetchError ? (
+                    <div className="text-center py-20">
+                        <p className="text-red-500 text-lg font-medium">Failed to load puzzles</p>
+                        <p className="text-gray-400 mt-1 text-sm">{fetchError}</p>
+                        <button
+                            onClick={fetchInventory}
+                            className="inline-block mt-4 px-6 py-2.5 bg-primary text-white rounded-full font-bold hover:bg-red-400 transition-colors"
+                        >
+                            Try Again
+                        </button>
+                    </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {filtered.map((puzzle) => (
