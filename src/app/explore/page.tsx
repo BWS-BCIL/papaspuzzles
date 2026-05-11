@@ -1,27 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import { Search, Upload } from "lucide-react";
 import { Donation } from "@/types/puzzle";
 
 const PIECE_OPTIONS = ["All", "100", "300", "500", "1000", "2000+"];
-const THEME_OPTIONS = ["All", "Animals", "Landscape", "Art", "Food", "Cityscape", "Movies", "Other"];
 const DIFFICULTY_OPTIONS = ["All", "easy", "medium", "hard"];
 
 export default function ExplorePage() {
     const [inventory, setInventory] = useState<Donation[]>([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
+    const [themeOptions, setThemeOptions] = useState<string[]>(["All"]);
     const [filterPieces, setFilterPieces] = useState("All");
     const [filterTheme, setFilterTheme] = useState("All");
     const [filterDifficulty, setFilterDifficulty] = useState("All");
 
-    useEffect(() => {
-        fetchInventory();
-    }, []);
-
-    const fetchInventory = async () => {
+    const fetchInventory = useCallback(async () => {
         setLoading(true);
         setFetchError(null);
         try {
@@ -39,7 +35,33 @@ export default function ExplorePage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    const fetchThemes = useCallback(async () => {
+        try {
+            const res = await fetch("/api/themes", { cache: "no-store" });
+            const data = await res.json();
+            if (!res.ok) return;
+
+            const themes = Array.isArray(data.data) ? data.data.filter((theme: unknown): theme is string => typeof theme === "string" && theme.trim().length > 0) : [];
+            const nextOptions = ["All", ...themes];
+            setThemeOptions(nextOptions);
+
+            setFilterTheme((previousTheme) => (
+                nextOptions.some((theme) => theme.toLowerCase() === previousTheme.toLowerCase()) ? previousTheme : "All"
+            ));
+        } catch (err) {
+            console.error("Failed to load themes", err);
+        }
+    }, []);
+
+    useEffect(() => {
+        const loadData = async () => {
+            await Promise.all([fetchInventory(), fetchThemes()]);
+        };
+
+        void loadData();
+    }, [fetchInventory, fetchThemes]);
 
     const filtered = inventory.filter(puzzle => {
         if (filterPieces !== "All" && String(puzzle.pieces) !== filterPieces) return false;
@@ -81,7 +103,7 @@ export default function ExplorePage() {
                             value={filterTheme}
                             onChange={(e) => setFilterTheme(e.target.value)}
                         >
-                            {THEME_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                            {themeOptions.map(o => <option key={o} value={o}>{o}</option>)}
                         </select>
                     </div>
                     <div className="flex items-center gap-2">

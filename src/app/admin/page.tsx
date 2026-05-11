@@ -5,6 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Lock, Package, Search, Check, Trash2, Edit } from "lucide-react";
 import type { Donation, TradeRecord, PuzzleRequest } from "@/types/puzzle";
+import { DEFAULT_THEME, FALLBACK_THEME } from "@/lib/puzzleConstants";
+
+const normalizeThemeValue = (value: string) => {
+    const normalizedWhitespace = value.trimStart().replace(/\s+/g, " ");
+    return normalizedWhitespace
+        .split(" ")
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(" ");
+};
 
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(true);
@@ -16,6 +26,7 @@ export default function AdminPage() {
     const [donations, setDonations] = useState<Donation[]>([]);
     const [requests, setRequests] = useState<PuzzleRequest[]>([]);
     const [trades, setTrades] = useState<TradeRecord[]>([]);
+    const [themeOptions, setThemeOptions] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
 
     // Edit Mode State
@@ -25,7 +36,7 @@ export default function AdminPage() {
         name: "",
         pieces: "",
         difficulty: "medium",
-        theme: "landscape",
+        theme: DEFAULT_THEME,
         condition: "good",
         email: "admin@papaspuzzles.co", // Default admin email
     });
@@ -75,10 +86,24 @@ export default function AdminPage() {
             setDonations(donationsData.data || []);
             setRequests(requestsData.data || []);
             setTrades(tradesData.data || []);
+            await fetchThemes();
         } catch (err) {
             console.error("Failed to fetch data", err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchThemes = async () => {
+        try {
+            const res = await fetch("/api/themes", { cache: "no-store" });
+            const data = await res.json();
+            if (!res.ok) return;
+
+            const themes = Array.isArray(data.data) ? data.data.filter((theme: unknown): theme is string => typeof theme === "string" && theme.trim().length > 0) : [];
+            setThemeOptions(themes);
+        } catch (err) {
+            console.error("Failed to fetch themes", err);
         }
     };
 
@@ -149,7 +174,7 @@ export default function AdminPage() {
             name: puzzle.name,
             pieces: String(puzzle.pieces),
             difficulty: puzzle.difficulty || "medium",
-            theme: puzzle.theme || "landscape",
+            theme: puzzle.theme || DEFAULT_THEME,
             condition: puzzle.condition || "good",
             email: puzzle.email || "admin@papaspuzzles.co",
         });
@@ -163,7 +188,7 @@ export default function AdminPage() {
             name: "",
             pieces: "",
             difficulty: "medium",
-            theme: "landscape",
+            theme: DEFAULT_THEME,
             condition: "good",
             email: "admin@papaspuzzles.co",
         });
@@ -200,6 +225,7 @@ export default function AdminPage() {
             // 2. Submit Data (Create or Update)
             const payload = {
                 ...newPuzzle,
+                theme: newPuzzle.theme.trim() || FALLBACK_THEME,
                 image_url: imageUrl
             };
 
@@ -509,18 +535,20 @@ export default function AdminPage() {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
-                                            <select
+                                            <input
+                                                required
+                                                type="text"
+                                                list="theme-options"
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                                                 value={newPuzzle.theme}
-                                                onChange={(e) => setNewPuzzle({ ...newPuzzle, theme: e.target.value })}
-                                            >
-                                                <option value="landscape">Landscape</option>
-                                                <option value="art">Art</option>
-                                                <option value="animals">Animals</option>
-                                                <option value="food">Food</option>
-                                                <option value="cityscape">Cityscape</option>
-                                                <option value="gradient">Gradient</option>
-                                            </select>
+                                                onChange={(e) => setNewPuzzle({ ...newPuzzle, theme: normalizeThemeValue(e.target.value) })}
+                                                placeholder="Type a theme or pick an existing one"
+                                            />
+                                            <datalist id="theme-options">
+                                                {themeOptions.map((theme) => (
+                                                    <option key={theme} value={theme} />
+                                                ))}
+                                            </datalist>
                                         </div>
                                     </div>
 

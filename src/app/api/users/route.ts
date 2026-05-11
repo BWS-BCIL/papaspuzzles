@@ -20,11 +20,12 @@ export async function GET(request: Request) {
 
         const userData = userDoc.data()!;
         const completedTradesCount = userData.completedTradesCount ?? 0;
+        const credits = userData.credits ?? 0;
         const tradeTier = completedTradesCount === 0 ? 'first-time' : 'returning';
 
         return NextResponse.json({
             message: 'success',
-            data: { ...userData, tradeTier },
+            data: { ...userData, completedTradesCount, credits, tradeTier },
         });
     } catch (error: unknown) {
         console.error('GET /api/users error:', error);
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
                 email: email || null,
                 displayName: displayName || null,
                 completedTradesCount: 0,
+                credits: 0,
                 createdAt: new Date().toISOString(),
             });
         } else {
