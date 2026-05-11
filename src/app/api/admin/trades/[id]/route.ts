@@ -44,6 +44,7 @@ export async function PATCH(
                         email: trade.user_email || null,
                         displayName: trade.user_name || null,
                         completedTradesCount: 1,
+                        credits: 0,
                         createdAt: new Date().toISOString(),
                     });
                 }

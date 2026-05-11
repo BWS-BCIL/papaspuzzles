@@ -18,6 +18,8 @@ interface DonationForm {
     image: string;
 }
 
+type TradeMode = "swap" | "donate_only" | "claim_with_credit";
+
 const emptyDonation = (): DonationForm => ({
     name: "", pieces: "", type: "Animals", condition: "good", image: ""
 });
@@ -39,6 +41,8 @@ function TradeForm() {
     const [loading, setLoading] = useState(false);
     const [inventory, setInventory] = useState<Donation[]>([]);
     const [isFirstTime, setIsFirstTime] = useState(false);
+    const [credits, setCredits] = useState(0);
+    const [tradeMode, setTradeMode] = useState<TradeMode>("swap");
     const [userTierLoaded, setUserTierLoaded] = useState(false);
 
     const [authEmail, setAuthEmail] = useState("");
@@ -67,15 +71,16 @@ function TradeForm() {
                 if (res.ok) {
                     const data = await res.json();
                     const firstTime = data.data?.tradeTier === "first-time";
+                    const accountCredits = Number(data.data?.credits ?? 0);
                     setIsFirstTime(firstTime);
-                    setDonations(firstTime ? [emptyDonation(), emptyDonation()] : [emptyDonation()]);
+                    setCredits(accountCredits);
                 } else {
                     setIsFirstTime(true);
-                    setDonations([emptyDonation(), emptyDonation()]);
+                    setCredits(0);
                 }
             } catch {
                 setIsFirstTime(true);
-                setDonations([emptyDonation(), emptyDonation()]);
+                setCredits(0);
             } finally {
                 setUserTierLoaded(true);
             }
@@ -83,6 +88,20 @@ function TradeForm() {
 
         fetchUserTier();
     }, [user]);
+
+    useEffect(() => {
+        if (tradeMode === "claim_with_credit") {
+            setDonations([]);
+            return;
+        }
+
+        if (tradeMode === "swap" && isFirstTime) {
+            setDonations([emptyDonation(), emptyDonation()]);
+            return;
+        }
+
+        setDonations([emptyDonation()]);
+    }, [tradeMode, isFirstTime]);
 
     // Advance past auth gate once user is signed in and tier is loaded
     useEffect(() => {
@@ -126,13 +145,14 @@ function TradeForm() {
     };
 
     const handleSubmitTrade = async () => {
-        if (!selectedPuzzleId) return;
+        if (tradeMode !== "donate_only" && !selectedPuzzleId) return;
         setLoading(true);
         try {
             const res = await fetch("/api/trade", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    mode: tradeMode,
                     userName: userInfo.name,
                     userEmail: userInfo.email,
                     uid: user?.uid || null,
@@ -143,11 +163,21 @@ function TradeForm() {
                         condition: d.condition,
                         image: d.image,
                     })),
-                    wantedPuzzleId: selectedPuzzleId,
+                    wantedPuzzleId: tradeMode === "donate_only" ? null : selectedPuzzleId,
                     dropoffDatetime: dropoffDate ? `${dropoffDate} ${dropoffTime}` : null,
                 }),
             });
-            if (res.ok) setStep(6);
+            const data = await res.json();
+            if (res.ok) {
+                if (tradeMode === "donate_only") {
+                    setCredits((prev) => prev + Number(data.creditsEarned ?? 0));
+                } else if (tradeMode === "claim_with_credit") {
+                    setCredits((prev) => Math.max(0, prev - 1));
+                }
+                setStep(6);
+            } else {
+                alert(data.error || "Unable to submit request");
+            }
         } catch (err) {
             console.error("Trade failed", err);
         } finally {
@@ -155,7 +185,9 @@ function TradeForm() {
         }
     };
 
-    const allDonationsValid = donations.every(d => d.name && d.pieces && d.image);
+    const allDonationsValid = tradeMode === "claim_with_credit"
+        ? true
+        : donations.every(d => d.name && d.pieces && d.image);
 
     const renderStep1 = () => (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300 text-center py-8">
@@ -365,12 +397,45 @@ function TradeForm() {
             <h2 className="text-2xl font-bold text-gray-800">
                 Step 2: Donate Your Puzzle{donations.length > 1 ? "s" : ""}
             </h2>
-            {isFirstTime && (
+            <div className="grid gap-3 sm:grid-cols-3">
+                <button
+                    type="button"
+                    onClick={() => setTradeMode("swap")}
+                    className={`text-left border rounded-xl p-3 transition-colors ${tradeMode === "swap" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}
+                >
+                    <p className="font-semibold text-gray-800">Swap</p>
+                    <p className="text-xs text-gray-500">Donate and claim now</p>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setTradeMode("donate_only")}
+                    className={`text-left border rounded-xl p-3 transition-colors ${tradeMode === "donate_only" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}
+                >
+                    <p className="font-semibold text-gray-800">Donate Only</p>
+                    <p className="text-xs text-gray-500">Earn credits for later</p>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setTradeMode("claim_with_credit")}
+                    disabled={credits < 1}
+                    className={`text-left border rounded-xl p-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${tradeMode === "claim_with_credit" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}
+                >
+                    <p className="font-semibold text-gray-800">Claim with Credit</p>
+                    <p className="text-xs text-gray-500">Credits available: {credits}</p>
+                </button>
+            </div>
+            {tradeMode === "swap" && isFirstTime && (
                 <div className="bg-accent/30 border border-accent rounded-xl p-4 text-sm text-gray-700">
                     🧩 <strong>First-time traders donate 2 puzzles and receive 1</strong> — to help us build up our library!
                 </div>
             )}
-            {donations.map((donation, index) => renderDonationForm(donation, index))}
+            {tradeMode === "claim_with_credit" ? (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
+                    You are using 1 credit to claim a puzzle without donating this time.
+                </div>
+            ) : (
+                donations.map((donation, index) => renderDonationForm(donation, index))
+            )}
             <div className="flex gap-3">
                 <button
                     onClick={() => setStep(2)}
@@ -379,7 +444,7 @@ function TradeForm() {
                     <ArrowLeft className="w-4 h-4" /> Back
                 </button>
                 <button
-                    onClick={() => setStep(4)}
+                    onClick={() => setStep(tradeMode === "donate_only" ? 5 : 4)}
                     disabled={!allDonationsValid}
                     className="flex-[2] py-3 bg-primary text-white rounded-full font-bold hover:bg-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
@@ -392,7 +457,11 @@ function TradeForm() {
     const renderStep4 = () => (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-2xl font-bold text-gray-800">Step 3: Choose a Puzzle</h2>
-            <p className="text-gray-500">Select a puzzle from our inventory to complete your trade.</p>
+            <p className="text-gray-500">
+                {tradeMode === "claim_with_credit"
+                    ? "Select a puzzle to claim using your credit."
+                    : "Select a puzzle from our inventory to complete your trade."}
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
                 {inventory.map((puzzle) => (
                     <div
@@ -444,8 +513,14 @@ function TradeForm() {
 
     const renderStep5 = () => (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="text-2xl font-bold text-gray-800">Step 4: Schedule Drop-off</h2>
-            <p className="text-gray-500">Choose when you would like to drop off your puzzle(s) and pick up your new one.</p>
+            <h2 className="text-2xl font-bold text-gray-800">
+                {tradeMode === "donate_only" ? "Step 3: Schedule Drop-off" : "Step 4: Schedule Drop-off"}
+            </h2>
+            <p className="text-gray-500">
+                {tradeMode === "donate_only"
+                    ? "Choose when you would like to drop off your puzzle donation."
+                    : "Choose when you would like to drop off your puzzle(s) and pick up your new one."}
+            </p>
             <div className="space-y-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
@@ -472,7 +547,7 @@ function TradeForm() {
             </div>
             <div className="flex gap-3">
                 <button
-                    onClick={() => setStep(4)}
+                    onClick={() => setStep(tradeMode === "donate_only" ? 3 : 4)}
                     className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-full font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
                 >
                     <ArrowLeft className="w-4 h-4" /> Back
@@ -482,7 +557,7 @@ function TradeForm() {
                     disabled={!dropoffDate || loading}
                     className="flex-[2] py-3 bg-secondary text-gray-800 rounded-full font-bold hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                 >
-                    {loading ? "Processing..." : "Confirm Trade"}
+                    {loading ? "Processing..." : tradeMode === "donate_only" ? "Confirm Donation" : "Confirm Trade"}
                 </button>
             </div>
         </div>
@@ -495,8 +570,11 @@ function TradeForm() {
             </div>
             <h2 className="text-3xl font-bold text-primary">Trade Submitted!</h2>
             <p className="text-gray-600 max-w-md mx-auto">
-                Thank you for trading with Papa&apos;s Puzzles! We have received your request.
-                We will confirm your drop-off appointment and reach out with details.
+                {tradeMode === "donate_only"
+                    ? "Thank you for donating! We have received your drop-off request and added credits to your account."
+                    : tradeMode === "claim_with_credit"
+                        ? "Your credit claim has been submitted! We will confirm your pickup appointment shortly."
+                        : "Thank you for trading with Papa&apos;s Puzzles! We have received your request. We will confirm your drop-off appointment and reach out with details."}
             </p>
             <div className="pt-6">
                 <a

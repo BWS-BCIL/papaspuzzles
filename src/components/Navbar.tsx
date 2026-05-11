@@ -56,7 +56,7 @@ export default function Navbar() {
                                     src="/logo.png"
                                     alt="Papa's Puzzles Logo"
                                     fill
-                                    className="object-cover"
+                                    className="object-cover object-center scale-125"
                                     priority
                                 />
                             </div>
