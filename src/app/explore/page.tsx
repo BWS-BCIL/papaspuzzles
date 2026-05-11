@@ -18,9 +18,11 @@ export default function ExplorePage() {
     const [filterDifficulty, setFilterDifficulty] = useState("All");
 
     useEffect(() => {
-        void (async () => {
+        const loadData = async () => {
             await Promise.all([fetchInventory(), fetchThemes()]);
-        })();
+        };
+
+        void loadData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

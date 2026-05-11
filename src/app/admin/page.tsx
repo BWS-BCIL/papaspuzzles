@@ -35,6 +35,15 @@ export default function AdminPage() {
     const [puzzlePhoto, setPuzzlePhoto] = useState<File | null>(null);
     const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // For editing w/o new photo
 
+    const normalizeThemeValue = (value: string) => {
+        const normalizedWhitespace = value.trimStart().replace(/\s+/g, " ");
+        return normalizedWhitespace
+            .split(" ")
+            .filter(Boolean)
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(" ");
+    };
+
     // Fetch data on mount
     useEffect(() => {
         fetchData();
@@ -532,7 +541,7 @@ export default function AdminPage() {
                                                 list="theme-options"
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                                                 value={newPuzzle.theme}
-                                                onChange={(e) => setNewPuzzle({ ...newPuzzle, theme: e.target.value })}
+                                                onChange={(e) => setNewPuzzle({ ...newPuzzle, theme: normalizeThemeValue(e.target.value) })}
                                                 placeholder="Type a theme or pick an existing one"
                                             />
                                             <datalist id="theme-options">

@@ -23,7 +23,7 @@ export async function GET() {
             themes.push(trimmedTheme);
         }
 
-        themes.sort((a, b) => a.localeCompare(b));
+        themes.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         return NextResponse.json({ message: 'success', data: themes });
     } catch (error: unknown) {
         console.error('Themes API error:', error);
