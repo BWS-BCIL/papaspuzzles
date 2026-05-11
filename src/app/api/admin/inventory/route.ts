@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
         const docRef = await adminDb.collection('donations').add({
             name,
-            pieces: Number.parseInt(pieces, 10),
+            pieces: Number(pieces),
             difficulty,
             theme: typeof theme === 'string' ? theme.trim() : theme,
             condition,
