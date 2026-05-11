@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        const snapshot = await adminDb.collection('donations').get();
+        const snapshot = await adminDb.collection('donations').select('theme').get();
         const seen = new Set<string>();
         const themes: string[] = [];
 

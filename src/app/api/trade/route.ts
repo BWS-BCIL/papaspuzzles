@@ -68,11 +68,12 @@ export async function POST(request: Request) {
         const donationIds: string[] = [];
         if (requiresDonation) {
             for (const donation of submittedDonations) {
+                const theme = typeof donation.type === 'string' && donation.type.trim().length > 0 ? donation.type.trim() : 'Other';
                 const donationRef = await adminDb.collection('donations').add({
                     name: donation.name,
                     pieces: donation.pieces,
                     difficulty: 'medium',
-                    theme: typeof donation.type === 'string' ? donation.type.trim() : donation.type,
+                    theme,
                     condition: donation.condition || 'good',
                     email: userEmail,
                     image_url: donation.image || null,
@@ -143,9 +144,11 @@ export async function POST(request: Request) {
         });
 
         // 3. Mark the requested puzzle as 'traded'
-        await adminDb.collection('donations').doc(wantedPuzzleId).update({
-            status: 'traded',
-        });
+        if (requiresClaim) {
+            await adminDb.collection('donations').doc(wantedPuzzleId).update({
+                status: 'traded',
+            });
+        }
 
         return NextResponse.json({ message: 'success', tradeId: tradeRef.id });
 
