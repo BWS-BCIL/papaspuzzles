@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import { Search, Upload } from "lucide-react";
 import { Donation } from "@/types/puzzle";
@@ -17,16 +17,7 @@ export default function ExplorePage() {
     const [filterTheme, setFilterTheme] = useState("All");
     const [filterDifficulty, setFilterDifficulty] = useState("All");
 
-    useEffect(() => {
-        const loadData = async () => {
-            await Promise.all([fetchInventory(), fetchThemes()]);
-        };
-
-        void loadData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const fetchInventory = async () => {
+    const fetchInventory = useCallback(async () => {
         setLoading(true);
         setFetchError(null);
         try {
@@ -44,9 +35,9 @@ export default function ExplorePage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const fetchThemes = async () => {
+    const fetchThemes = useCallback(async () => {
         try {
             const res = await fetch("/api/themes", { cache: "no-store" });
             const data = await res.json();
@@ -56,13 +47,21 @@ export default function ExplorePage() {
             const nextOptions = ["All", ...themes];
             setThemeOptions(nextOptions);
 
-            if (!nextOptions.some((theme) => theme.toLowerCase() === filterTheme.toLowerCase())) {
-                setFilterTheme("All");
-            }
+            setFilterTheme((previousTheme) => (
+                nextOptions.some((theme) => theme.toLowerCase() === previousTheme.toLowerCase()) ? previousTheme : "All"
+            ));
         } catch (err) {
             console.error("Failed to load themes", err);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        const loadData = async () => {
+            await Promise.all([fetchInventory(), fetchThemes()]);
+        };
+
+        void loadData();
+    }, [fetchInventory, fetchThemes]);
 
     const filtered = inventory.filter(puzzle => {
         if (filterPieces !== "All" && String(puzzle.pieces) !== filterPieces) return false;

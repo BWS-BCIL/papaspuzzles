@@ -7,6 +7,15 @@ import { Lock, Package, Search, Check, Trash2, Edit } from "lucide-react";
 import type { Donation, TradeRecord, PuzzleRequest } from "@/types/puzzle";
 import { DEFAULT_THEME, FALLBACK_THEME } from "@/lib/puzzleConstants";
 
+const normalizeThemeValue = (value: string) => {
+    const normalizedWhitespace = value.trimStart().replace(/\s+/g, " ");
+    return normalizedWhitespace
+        .split(" ")
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(" ");
+};
+
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(true);
     const [password, setPassword] = useState("");
@@ -34,15 +43,6 @@ export default function AdminPage() {
     const [uploading, setUploading] = useState(false);
     const [puzzlePhoto, setPuzzlePhoto] = useState<File | null>(null);
     const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // For editing w/o new photo
-
-    const normalizeThemeValue = (value: string) => {
-        const normalizedWhitespace = value.trimStart().replace(/\s+/g, " ");
-        return normalizedWhitespace
-            .split(" ")
-            .filter(Boolean)
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(" ");
-    };
 
     // Fetch data on mount
     useEffect(() => {

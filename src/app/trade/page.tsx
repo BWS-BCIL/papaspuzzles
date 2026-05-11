@@ -189,6 +189,18 @@ function TradeForm() {
         ? true
         : donations.every(d => d.name && d.pieces && d.image);
 
+    const getSuccessMessage = () => {
+        if (tradeMode === "donate_only") {
+            return "Thank you for donating! We have received your drop-off request and added credits to your account.";
+        }
+
+        if (tradeMode === "claim_with_credit") {
+            return "Your credit claim has been submitted! We will confirm your pickup appointment shortly.";
+        }
+
+        return "Thank you for trading with Papa's Puzzles! We have received your request. We will confirm your drop-off appointment and reach out with details.";
+    };
+
     const renderStep1 = () => (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300 text-center py-8">
             <div className="flex justify-center mb-4">
@@ -570,11 +582,7 @@ function TradeForm() {
             </div>
             <h2 className="text-3xl font-bold text-primary">Trade Submitted!</h2>
             <p className="text-gray-600 max-w-md mx-auto">
-                {tradeMode === "donate_only"
-                    ? "Thank you for donating! We have received your drop-off request and added credits to your account."
-                    : tradeMode === "claim_with_credit"
-                        ? "Your credit claim has been submitted! We will confirm your pickup appointment shortly."
-                        : "Thank you for trading with Papa&apos;s Puzzles! We have received your request. We will confirm your drop-off appointment and reach out with details."}
+                {getSuccessMessage()}
             </p>
             <div className="pt-6">
                 <a

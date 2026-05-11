@@ -69,7 +69,8 @@ export async function POST(request: Request) {
         const donationIds: string[] = [];
         if (requiresDonation) {
             for (const donation of submittedDonations) {
-                const theme = typeof donation.type === 'string' && donation.type.trim().length > 0 ? donation.type.trim() : FALLBACK_THEME;
+                const trimmedType = typeof donation.type === 'string' ? donation.type.trim() : '';
+                const theme = trimmedType.length > 0 ? trimmedType : FALLBACK_THEME;
                 const donationRef = await adminDb.collection('donations').add({
                     name: donation.name,
                     pieces: donation.pieces,
