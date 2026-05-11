@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
@@ -35,6 +35,7 @@ export default function TradePage() {
 function TradeForm() {
     const searchParams = useSearchParams();
     const wantedId = searchParams.get("wanted");
+    const isClaimFirst = !!wantedId;
     const { user, loading: authLoading, signIn, signUp } = useAuth();
 
     const [step, setStep] = useState(1);
@@ -111,8 +112,9 @@ function TradeForm() {
     }, [step, user, userTierLoaded]);
 
     useEffect(() => {
-        if (step === 4) fetchInventory();
-    }, [step]);
+        const inventoryFetchStep = isClaimFirst ? 2 : 4;
+        if (step === inventoryFetchStep) fetchInventory();
+    }, [step, isClaimFirst]);
 
     const fetchInventory = async () => {
         try {
@@ -188,10 +190,32 @@ function TradeForm() {
     const allDonationsValid = tradeMode === "claim_with_credit"
         ? true
         : donations.every(d => d.name && d.pieces && d.image);
+    const claimTargetId = wantedId || selectedPuzzleId;
+    const selectedPuzzle = useMemo(
+        () => inventory.find((puzzle) => puzzle.id === claimTargetId),
+        [inventory, claimTargetId],
+    );
+    const selectedPuzzleName = selectedPuzzle?.name || "your selected puzzle";
 
     const getSuccessMessage = () => {
         if (tradeMode === "donate_only") {
             return "Thank you for donating! We have received your drop-off request and added credits to your account.";
+        }
+
+        if (isClaimFirst && tradeMode === "swap") {
+            return (
+                <>
+                    Your trade for <strong>{selectedPuzzleName}</strong> has been submitted! We&apos;ll confirm your drop-off appointment and reach out with pickup details.
+                </>
+            );
+        }
+
+        if (isClaimFirst && tradeMode === "claim_with_credit") {
+            return (
+                <>
+                    Your claim for <strong>{selectedPuzzleName}</strong> has been submitted! We&apos;ll confirm your pickup appointment shortly.
+                </>
+            );
         }
 
         if (tradeMode === "claim_with_credit") {
@@ -407,9 +431,12 @@ function TradeForm() {
     const renderStep3 = () => (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-2xl font-bold text-gray-800">
-                Step 2: Donate Your Puzzle{donations.length > 1 ? "s" : ""}
+                {isClaimFirst ? "Step 1: How would you like to get it?" : `Step 2: Donate Your Puzzle${donations.length > 1 ? "s" : ""}`}
             </h2>
-            <div className="grid gap-3 sm:grid-cols-3">
+            {isClaimFirst && (
+                <p className="text-gray-500">Choose how you&apos;d like to claim this puzzle.</p>
+            )}
+            <div className={`grid gap-3 ${isClaimFirst ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
                 <button
                     type="button"
                     onClick={() => setTradeMode("swap")}
@@ -418,14 +445,16 @@ function TradeForm() {
                     <p className="font-semibold text-gray-800">Swap</p>
                     <p className="text-xs text-gray-500">Donate and claim now</p>
                 </button>
-                <button
-                    type="button"
-                    onClick={() => setTradeMode("donate_only")}
-                    className={`text-left border rounded-xl p-3 transition-colors ${tradeMode === "donate_only" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}
-                >
-                    <p className="font-semibold text-gray-800">Donate Only</p>
-                    <p className="text-xs text-gray-500">Earn credits for later</p>
-                </button>
+                {!isClaimFirst && (
+                    <button
+                        type="button"
+                        onClick={() => setTradeMode("donate_only")}
+                        className={`text-left border rounded-xl p-3 transition-colors ${tradeMode === "donate_only" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"}`}
+                    >
+                        <p className="font-semibold text-gray-800">Donate Only</p>
+                        <p className="text-xs text-gray-500">Earn credits for later</p>
+                    </button>
+                )}
                 <button
                     type="button"
                     onClick={() => setTradeMode("claim_with_credit")}
@@ -456,7 +485,7 @@ function TradeForm() {
                     <ArrowLeft className="w-4 h-4" /> Back
                 </button>
                 <button
-                    onClick={() => setStep(tradeMode === "donate_only" ? 5 : 4)}
+                    onClick={() => setStep((tradeMode === "donate_only" || isClaimFirst) ? 5 : 4)}
                     disabled={!allDonationsValid}
                     className="flex-[2] py-3 bg-primary text-white rounded-full font-bold hover:bg-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
@@ -526,13 +555,18 @@ function TradeForm() {
     const renderStep5 = () => (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-2xl font-bold text-gray-800">
-                {tradeMode === "donate_only" ? "Step 3: Schedule Drop-off" : "Step 4: Schedule Drop-off"}
+                {tradeMode === "donate_only" || isClaimFirst ? "Step 3: Schedule Drop-off" : "Step 4: Schedule Drop-off"}
             </h2>
             <p className="text-gray-500">
                 {tradeMode === "donate_only"
                     ? "Choose when you would like to drop off your puzzle donation."
                     : "Choose when you would like to drop off your puzzle(s) and pick up your new one."}
             </p>
+            {isClaimFirst && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
+                    ✓ Picking up: <strong>{selectedPuzzleName}</strong>
+                </div>
+            )}
             <div className="space-y-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
@@ -559,7 +593,7 @@ function TradeForm() {
             </div>
             <div className="flex gap-3">
                 <button
-                    onClick={() => setStep(tradeMode === "donate_only" ? 3 : 4)}
+                    onClick={() => setStep((tradeMode === "donate_only" || isClaimFirst) ? 3 : 4)}
                     className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-full font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
                 >
                     <ArrowLeft className="w-4 h-4" /> Back
@@ -595,7 +629,12 @@ function TradeForm() {
         </div>
     );
 
-    const progressStep = step - 1; // steps 2-5 map to progress 1-4
+    // Claim-first flow skips step 4, so progress maps step 2->1, step 3->2, step 5->3.
+    const claimFirstProgressByStep: Record<number, number> = { 2: 1, 3: 2, 5: 3 };
+    const progressStep = isClaimFirst
+        ? (claimFirstProgressByStep[step] ?? 0)
+        : step - 1; // steps 2-5 map to progress 1-4
+    const progressMarkers = isClaimFirst ? [1, 2, 3] : [1, 2, 3, 4];
 
     return (
         <div className="min-h-screen bg-background">
@@ -605,7 +644,7 @@ function TradeForm() {
                     {step >= 2 && step <= 5 && (
                         <div className="flex justify-between mb-8 relative">
                             <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-100 -z-10 rounded-full" />
-                            {[1, 2, 3, 4].map((s) => (
+                            {progressMarkers.map((s) => (
                                 <div
                                     key={s}
                                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors ${progressStep >= s ? "bg-primary text-white" : "bg-gray-100 text-gray-400"}`}
@@ -613,6 +652,30 @@ function TradeForm() {
                                     {s}
                                 </div>
                             ))}
+                        </div>
+                    )}
+                    {isClaimFirst && step >= 2 && step <= 5 && (
+                        <div className="mb-6 border border-primary/20 bg-primary/5 rounded-xl p-4">
+                            <p className="text-sm font-semibold text-primary mb-3">🧩 You&apos;re claiming this puzzle</p>
+                            <div className="flex items-center gap-3">
+                                {selectedPuzzle?.image_url ? (
+                                    <img
+                                        src={selectedPuzzle.image_url}
+                                        alt={selectedPuzzle.name || "Selected puzzle image"}
+                                        className="w-16 h-16 rounded-lg object-cover bg-white"
+                                    />
+                                ) : (
+                                    <div className="w-16 h-16 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400">
+                                        <Upload className="w-6 h-6" />
+                                    </div>
+                                )}
+                                <div>
+                                    <p className="font-semibold text-gray-800">{selectedPuzzle?.name || "Unable to load puzzle details"}</p>
+                                    {selectedPuzzle?.pieces && (
+                                        <p className="text-sm text-gray-500">{selectedPuzzle.pieces} pieces</p>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
 
