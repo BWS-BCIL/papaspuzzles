@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
@@ -191,7 +191,10 @@ function TradeForm() {
         ? true
         : donations.every(d => d.name && d.pieces && d.image);
     const claimTargetId = wantedId || selectedPuzzleId;
-    const selectedPuzzle = inventory.find((puzzle) => puzzle.id === claimTargetId);
+    const selectedPuzzle = useMemo(
+        () => inventory.find((puzzle) => puzzle.id === claimTargetId),
+        [inventory, claimTargetId],
+    );
     const selectedPuzzleName = selectedPuzzle?.name || "your selected puzzle";
 
     const getSuccessMessage = () => {
@@ -667,7 +670,7 @@ function TradeForm() {
                                     </div>
                                 )}
                                 <div>
-                                    <p className="font-semibold text-gray-800">{selectedPuzzle?.name || "Puzzle information unavailable"}</p>
+                                    <p className="font-semibold text-gray-800">{selectedPuzzle?.name || "Unable to load puzzle details"}</p>
                                     {selectedPuzzle?.pieces && (
                                         <p className="text-sm text-gray-500">{selectedPuzzle.pieces} pieces</p>
                                     )}
