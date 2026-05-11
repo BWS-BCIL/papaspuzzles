@@ -112,7 +112,8 @@ function TradeForm() {
     }, [step, user, userTierLoaded]);
 
     useEffect(() => {
-        if (step === 4 || (isClaimFirst && step >= 2 && step <= 5)) fetchInventory();
+        const inventoryFetchStep = isClaimFirst ? 2 : 4;
+        if (step === inventoryFetchStep) fetchInventory();
     }, [step, isClaimFirst]);
 
     const fetchInventory = async () => {
@@ -189,7 +190,8 @@ function TradeForm() {
     const allDonationsValid = tradeMode === "claim_with_credit"
         ? true
         : donations.every(d => d.name && d.pieces && d.image);
-    const selectedPuzzle = inventory.find((puzzle) => puzzle.id === selectedPuzzleId);
+    const claimTargetId = wantedId || selectedPuzzleId;
+    const selectedPuzzle = inventory.find((puzzle) => puzzle.id === claimTargetId);
     const selectedPuzzleName = selectedPuzzle?.name || "your selected puzzle";
 
     const getSuccessMessage = () => {
@@ -624,8 +626,10 @@ function TradeForm() {
         </div>
     );
 
+    // Claim-first flow skips step 4, so progress maps step 2->1, step 3->2, step 5->3.
+    const claimFirstProgressByStep: Record<number, number> = { 2: 1, 3: 2, 5: 3 };
     const progressStep = isClaimFirst
-        ? (step === 2 ? 1 : step === 3 ? 2 : step === 5 ? 3 : 0)
+        ? (claimFirstProgressByStep[step] ?? 0)
         : step - 1; // steps 2-5 map to progress 1-4
     const progressMarkers = isClaimFirst ? [1, 2, 3] : [1, 2, 3, 4];
 
@@ -654,7 +658,7 @@ function TradeForm() {
                                 {selectedPuzzle?.image_url ? (
                                     <img
                                         src={selectedPuzzle.image_url}
-                                        alt={selectedPuzzle.name}
+                                        alt={selectedPuzzle.name || "Selected puzzle image"}
                                         className="w-16 h-16 rounded-lg object-cover bg-white"
                                     />
                                 ) : (
@@ -663,7 +667,7 @@ function TradeForm() {
                                     </div>
                                 )}
                                 <div>
-                                    <p className="font-semibold text-gray-800">{selectedPuzzle?.name || "Loading puzzle..."}</p>
+                                    <p className="font-semibold text-gray-800">{selectedPuzzle?.name || "Puzzle information unavailable"}</p>
                                     {selectedPuzzle?.pieces && (
                                         <p className="text-sm text-gray-500">{selectedPuzzle.pieces} pieces</p>
                                     )}
