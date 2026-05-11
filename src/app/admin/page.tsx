@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Lock, Package, Search, Check, Trash2, Edit } from "lucide-react";
 import type { Donation, TradeRecord, PuzzleRequest } from "@/types/puzzle";
+import { DEFAULT_THEME, FALLBACK_THEME } from "@/lib/puzzleConstants";
 
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(true);
@@ -26,7 +27,7 @@ export default function AdminPage() {
         name: "",
         pieces: "",
         difficulty: "medium",
-        theme: "Landscape",
+        theme: DEFAULT_THEME,
         condition: "good",
         email: "admin@papaspuzzles.co", // Default admin email
     });
@@ -164,7 +165,7 @@ export default function AdminPage() {
             name: puzzle.name,
             pieces: String(puzzle.pieces),
             difficulty: puzzle.difficulty || "medium",
-            theme: puzzle.theme || "Landscape",
+            theme: puzzle.theme || DEFAULT_THEME,
             condition: puzzle.condition || "good",
             email: puzzle.email || "admin@papaspuzzles.co",
         });
@@ -178,7 +179,7 @@ export default function AdminPage() {
             name: "",
             pieces: "",
             difficulty: "medium",
-            theme: "Landscape",
+            theme: DEFAULT_THEME,
             condition: "good",
             email: "admin@papaspuzzles.co",
         });
@@ -215,7 +216,7 @@ export default function AdminPage() {
             // 2. Submit Data (Create or Update)
             const payload = {
                 ...newPuzzle,
-                theme: newPuzzle.theme.trim() || "Other",
+                theme: newPuzzle.theme.trim() || FALLBACK_THEME,
                 image_url: imageUrl
             };
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { validateString, validateEmail } from '@/lib/validate';
 import * as admin from 'firebase-admin';
+import { FALLBACK_THEME } from '@/lib/puzzleConstants';
 
 type TradeMode = 'swap' | 'donate_only' | 'claim_with_credit';
 
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
         const donationIds: string[] = [];
         if (requiresDonation) {
             for (const donation of submittedDonations) {
-                const theme = typeof donation.type === 'string' && donation.type.trim().length > 0 ? donation.type.trim() : 'Other';
+                const theme = typeof donation.type === 'string' && donation.type.trim().length > 0 ? donation.type.trim() : FALLBACK_THEME;
                 const donationRef = await adminDb.collection('donations').add({
                     name: donation.name,
                     pieces: donation.pieces,
