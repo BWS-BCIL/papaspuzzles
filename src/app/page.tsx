@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Image from "next/image";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Gift } from "lucide-react";
 
 export default function Home() {
     return (
@@ -35,33 +35,50 @@ export default function Home() {
                         by swapping puzzles with other families.
                     </p>
 
-                    <div className="pt-8 flex justify-center gap-4">
+                    <div className="pt-8 flex flex-col sm:flex-row justify-center gap-4">
                         <Link
-                            href="/trade"
-                            className="inline-flex items-center gap-3 px-10 py-5 bg-primary text-white rounded-full text-2xl font-bold hover:bg-red-400 transition-all transform hover:scale-105 shadow-xl hover:shadow-2xl"
+                            href="/donate-program"
+                            className="inline-flex items-center justify-center gap-3 px-10 py-5 bg-secondary text-gray-800 rounded-full text-lg font-bold hover:bg-green-300 transition-all transform hover:scale-105 shadow-xl hover:shadow-2xl"
                         >
-                            Start a Trade <ArrowRight className="w-8 h-8" />
+                            <Gift className="w-6 h-6" />
+                            Donate Now
                         </Link>
                         <Link
-                            href="/explore"
-                            className="inline-flex items-center gap-3 px-10 py-5 bg-white text-primary border-2 border-primary rounded-full text-2xl font-bold hover:bg-gray-50 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
+                            href="/trade"
+                            className="inline-flex items-center justify-center gap-3 px-10 py-5 bg-primary text-white rounded-full text-lg font-bold hover:bg-red-400 transition-all transform hover:scale-105 shadow-xl hover:shadow-2xl"
                         >
-                            Explore Puzzles
+                            Start a Trade <ArrowRight className="w-6 h-6" />
                         </Link>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 text-left">
                         <div className="bg-white p-6 rounded-xl shadow-sm">
                             <h3 className="text-xl font-bold text-gray-800 mb-2">1. Donate</h3>
-                            <p className="text-gray-600">List a puzzle you&apos;ve completed and are ready to pass on.</p>
+                            <p className="text-gray-600">List one or more puzzles you&apos;ve completed and earn credits for your account.</p>
                         </div>
                         <div className="bg-white p-6 rounded-xl shadow-sm">
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">2. Choose</h3>
-                            <p className="text-gray-600">Browse our inventory and pick a new challenge for yourself.</p>
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">2. Earn</h3>
+                            <p className="text-gray-600">First-timers: 2 puzzles = 1 credit. Returning donors: 1 puzzle = 1 credit.</p>
                         </div>
                         <div className="bg-white p-6 rounded-xl shadow-sm">
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">3. Swap</h3>
-                            <p className="text-gray-600">We&apos;ll coordinate the exchange so everyone gets a new puzzle!</p>
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">3. Redeem</h3>
+                            <p className="text-gray-600">Use your credits to pick puzzles from our inventory anytime!</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-secondary/20 to-primary/20 p-8 rounded-2xl border-2 border-secondary/50">
+                        <h3 className="text-2xl font-bold text-primary mb-4">✨ How Credits Work</h3>
+                        <div className="grid grid-cols-2 gap-8 text-left max-w-xl mx-auto">
+                            <div>
+                                <p className="text-sm font-semibold text-gray-600 mb-2">FIRST-TIME DONOR</p>
+                                <p className="text-lg font-bold text-primary">2 puzzles → 1 credit</p>
+                                <p className="text-xs text-gray-500 mt-1">Helps us build our library!</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-gray-600 mb-2">RETURNING DONOR</p>
+                                <p className="text-lg font-bold text-primary">1 puzzle → 1 credit</p>
+                                <p className="text-xs text-gray-500 mt-1">We appreciate your loyalty!</p>
+                            </div>
                         </div>
                     </div>
                 </div>
