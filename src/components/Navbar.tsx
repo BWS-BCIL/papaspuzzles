@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { User, Search, LogIn, LogOut, X } from "lucide-react";
+import { User, Search, LogIn, LogOut, X, Gift } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 import { getAuthErrorMessage } from "@/lib/firebaseErrorMessages";
@@ -69,12 +69,16 @@ export default function Navbar() {
                             <Search className="w-4 h-4" />
                             Explore
                         </Link>
-                        <Link href="/about" className="text-gray-600 hover:text-primary font-medium transition-colors">
-                            About Us
-                        </Link>
                         <Link href="/my-trades" className="text-gray-600 hover:text-primary font-medium transition-colors flex items-center gap-1">
                             <User className="w-4 h-4" />
                             My Trades
+                        </Link>
+                        <Link
+                            href="/donate-program"
+                            className="bg-secondary text-gray-800 px-4 py-2 rounded-full font-bold hover:bg-green-300 transition-colors shadow-sm flex items-center gap-2"
+                        >
+                            <Gift className="w-4 h-4" />
+                            Donate Now
                         </Link>
                         <Link
                             href="/trade"
