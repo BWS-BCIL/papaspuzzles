@@ -12,9 +12,16 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const db = getFirestore(app);
-const storage = getStorage(app);
-const auth = getAuth(app);
+// Only initialize when env vars are present (guards against SSG with no config)
+const app = firebaseConfig.apiKey
+    ? (getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0])
+    : getApps()[0] ?? null;
+
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const db = app ? getFirestore(app) : null!;
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const storage = app ? getStorage(app) : null!;
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const auth = app ? getAuth(app) : null!;
 
 export { db, storage, auth };
